@@ -5,20 +5,30 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:app": "vite",
+    "dev:llm": "node scripts/dev-with-mlx.mjs --llm-only",
+    "dev:local": "node scripts/dev-with-mlx.mjs",
+    "benchmark:llm": "node scripts/llm-benchmark.mjs",
+    "benchmark:live": "tsx scripts/live-command-benchmark.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
     "@xstate/react": "^5.0.4",
-    "xstate": "^5.20.2",
-    "vite": "^7.0.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "vite": "^7.0.0",
+    "xstate": "^5.20.2"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "tsx": "^4.23.11",
     "typescript": "~5.8.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true
   }
 }
