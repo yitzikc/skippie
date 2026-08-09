@@ -127,6 +127,12 @@ button:disabled {
   margin-top: 14px;
 }
 
+.scene-column {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 10px;
+}
+
 .cockpit-scene {
   position: relative;
   display: block;
@@ -286,10 +292,19 @@ button:disabled {
   margin: 4px 0 8px;
 }
 
+.wind-dial-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(179,61,43,0.9) 0 50%, rgba(29,122,69,0.9) 50% 100%);
+}
+
 .wind-dial svg {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
+  z-index: 1;
 }
 
 .wind-speed-dial {
@@ -384,6 +399,72 @@ button:disabled {
 .pattern-green { background: repeating-linear-gradient(90deg, rgba(39,101,88,0.9) 0 5px, rgba(74,172,135,0.7) 5px 10px); }
 .pattern-brown-white { background: repeating-linear-gradient(90deg, #7a5a3b 0 8px, #f1efe7 8px 14px); }
 .pattern-black-white { background: repeating-linear-gradient(90deg, #1a1d1d 0 6px, #f0f0ef 6px 12px); }
+
+.spinlock-bank {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 6px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.5);
+}
+
+.spinlock {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.72);
+  padding: 6px 4px 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  min-height: 76px;
+}
+
+.spinlock.thin {
+  transform: scaleX(0.92);
+}
+
+.spinlock-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: block;
+  margin-bottom: 8px;
+  border: 1px solid rgba(18,50,57,0.35);
+}
+
+.spinlock-dot.locked {
+  background: #1d1d1d;
+}
+
+.spinlock-dot.unlocked {
+  background: #dfe4dd;
+}
+
+.spinlock-pattern {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(18,50,57,0.2);
+  background: repeating-linear-gradient(90deg, rgba(65,108,170,0.9) 0 5px, rgba(118,160,209,0.75) 5px 10px);
+}
+
+.spinlock-pattern.thin {
+  height: 6px;
+}
+
+.spinlock-pattern.solid-thin {
+  background: linear-gradient(90deg, #cec1a4, #8a7a5a);
+  border-radius: 999px;
+}
+
+.spinlock-pattern.pattern-red { background: repeating-linear-gradient(90deg, #d35e3f 0 6px, #a44035 6px 12px); }
+.spinlock-pattern.pattern-blue { background: repeating-linear-gradient(90deg, rgba(65,108,170,0.9) 0 5px, rgba(118,160,209,0.75) 5px 10px); }
+.spinlock-pattern.pattern-green { background: repeating-linear-gradient(90deg, rgba(39,101,88,0.9) 0 5px, rgba(74,172,135,0.7) 5px 10px); }
+.spinlock-pattern.pattern-brown-white { background: repeating-linear-gradient(90deg, #7a5a3b 0 8px, #f1efe7 8px 14px); }
+.spinlock-pattern.pattern-black-white { background: repeating-linear-gradient(90deg, #1a1d1d 0 6px, #f0f0ef 6px 12px); }
 
 .winch-tooltip {
   position: absolute;

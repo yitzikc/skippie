@@ -25,6 +25,8 @@ export type BoatState = {
   bowThruster: "off" | "port" | "starboard";
   anchor: "stowed" | "ready" | "deployed";
   mainsail: "down" | "preparing" | "hoisting" | "raised" | "lowering";
+  genoaFurled: boolean;
+  genoaTack: "port" | "starboard";
 };
 
 export type EnvironmentState = {

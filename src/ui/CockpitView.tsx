@@ -1,7 +1,16 @@
+import { useState } from "react";
 import type { ScenarioState } from "../sim/types";
 
 type Props = {
   scenario: ScenarioState;
+};
+
+type SpinlockState = {
+  id: string;
+  label: string;
+  pattern: string;
+  locked: boolean;
+  thin?: boolean;
 };
 
 const engineMap: Record<string, string> = {
@@ -29,7 +38,20 @@ const ropeOptions = [
   { name: "Reefing line 1", pattern: "blackWhite", swatch: "pattern-black-white" },
 ];
 
+const initialSpinlocks: SpinlockState[] = [
+  { id: "genoa-furler", label: "Genoa furler", pattern: "solid-thin", locked: false, thin: true },
+  { id: "main-halyard", label: "Main halyard", pattern: "pattern-red", locked: true },
+  { id: "boom-vang", label: "Boom vang", pattern: "pattern-brown-white", locked: true },
+  { id: "main-sheet", label: "Main sheet", pattern: "pattern-brown-white", locked: true },
+  { id: "genoa-sheet-port", label: "Genoa sheet port", pattern: "pattern-blue", locked: true },
+  { id: "genoa-sheet-starboard", label: "Genoa sheet starboard", pattern: "pattern-green", locked: true },
+  { id: "reefing-line", label: "Reefing line 1", pattern: "pattern-black-white", locked: false },
+];
+
 export function CockpitView({ scenario }: Props) {
+  const [spinlocks, setSpinlocks] = useState<SpinlockState[]>(initialSpinlocks);
+  const [genoaFurled, setGenoaFurled] = useState<boolean>(scenario.boat.genoaFurled ?? true);
+  const [genoaTack, setGenoaTack] = useState<"port" | "starboard">(scenario.boat.genoaTack ?? "starboard");
   const heading = Math.round(scenario.boat.headingDeg);
   const windDir = Math.round(scenario.environment.windDirectionDeg);
   const windSpeed = scenario.environment.windStrengthKnots;
@@ -38,6 +60,7 @@ export function CockpitView({ scenario }: Props) {
   const engineValue = engineMap[scenario.boat.engine] ?? "IDLE";
 
   const relativeWind = normalizeDegrees(windDir - heading);
+  const tack = relativeWind >= 0 ? "starboard" : "port";
   const boomOffset = clamp(Math.round(relativeWind * 0.64 + scenario.boat.rudderAngleDeg * 0.35), -55, 55);
   const jibOffset = clamp(Math.round(relativeWind * 0.72), -52, 52);
   const helmState = scenario.boat.rudderAngleDeg > 5 ? "right" : scenario.boat.rudderAngleDeg < -5 ? "left" : "center";
@@ -49,6 +72,10 @@ export function CockpitView({ scenario }: Props) {
   const jibTrim = clamp(Math.round(relativeWind * 0.55), -40, 40);
   const sailTwist = clamp(Math.round(relativeWind * 0.16 + scenario.boat.rudderAngleDeg * 0.25), -26, 26);
   const mainSheetAngle = clamp(Math.round(relativeWind * 0.35 + scenario.boat.rudderAngleDeg * 0.26), -28, 28);
+  const genoaVisible = !genoaFurled;
+  const activeGenoaTack = genoaVisible ? (genoaTack || tack) : null;
+  const genoaSideOffset = activeGenoaTack === "port" ? -18 : 18;
+  const activeTelltaleColor = activeGenoaTack === "starboard" ? "#1d7a45" : "#b33d2b";
   const mainSailPath =
     scenario.boat.mainsail === "down"
       ? "M360,172 L360,268 L220,285 L270,176 Z"
@@ -85,21 +112,33 @@ export function CockpitView({ scenario }: Props) {
     }
   })();
 
+  function toggleSpinlock(id: string) {
+    setSpinlocks((current) =>
+      current.map((lock) => (lock.id === id ? { ...lock, locked: !lock.locked } : lock)),
+    );
+
+    if (id === "genoa-furler") {
+      setGenoaFurled((current) => !current);
+      setGenoaTack((current) => current);
+    }
+  }
+
   return (
     <section className="cockpit-view" aria-label="First-person cockpit view">
-      <div className="cockpit-scene" aria-hidden="true">
-        <div className="scene-sky" />
-        <div className="scene-horizon" />
-        <div className="scene-water" />
+      <div className="scene-column">
+        <div className="cockpit-scene" aria-hidden="true">
+          <div className="scene-sky" />
+          <div className="scene-horizon" />
+          <div className="scene-water" />
 
-        <div className="helm-indicator" data-state={helmState}>
-          <span className="helm-label">Helm</span>
-          <div className="helm-track">
-            <span className="helm-marker" />
+          <div className="helm-indicator" data-state={helmState}>
+            <span className="helm-label">Helm</span>
+            <div className="helm-track">
+              <span className="helm-marker" />
+            </div>
           </div>
-        </div>
 
-        <svg className="sail-svg" viewBox="0 0 700 420" preserveAspectRatio="xMidYMid meet">
+          <svg className="sail-svg" viewBox="0 0 700 420" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="mainGradient" x1="0" x2="1">
               <stop offset="0%" stopColor="#d76a5e" />
@@ -194,25 +233,25 @@ export function CockpitView({ scenario }: Props) {
             </g>
           </g>
 
-          <g transform={`translate(${jibOffset * 1.1} 0)`}>
+          <g transform={`translate(${jibOffset * 1.1 + genoaSideOffset} 0)`}>
             <g>
-              <path d="M232,184 L232,94" stroke="#dfeae8" strokeWidth="5" strokeLinecap="round" opacity="0.9" />
-              <path d="M232,184 L184,76" stroke="#dfeae8" strokeWidth="4" strokeLinecap="round" opacity="0.75" />
-              <path d="M232,92 L206,44" stroke="#dfeae8" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+              <path d="M232,184 L232,94" stroke="#dfeae8" strokeWidth="5" strokeLinecap="round" opacity={genoaVisible ? 0.9 : 0} />
+              <path d="M232,184 L184,76" stroke="#dfeae8" strokeWidth="4" strokeLinecap="round" opacity={genoaVisible ? 0.75 : 0} />
+              <path d="M232,92 L206,44" stroke="#dfeae8" strokeWidth="2.2" strokeLinecap="round" opacity={genoaVisible ? 0.8 : 0} />
               <path
                 d={jibSailPath}
                 fill="url(#jibGradient)"
-                opacity={scenario.boat.mainsail === "down" ? 0.25 : 0.98}
+                opacity={genoaVisible ? 0.98 : 0}
                 transform={`rotate(${jibTrim * 0.7} 180 150)`}
               />
-              <path d="M232,184 L165,226" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" />
-              <path d="M232,184 L184,76" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" />
-              <g className="jib-telltales" opacity={jibTelltaleOpacity}>
-                <path d="M178,112 L195,144" stroke="#1d7a45" strokeWidth="2.2" strokeLinecap="round" />
-                <path d="M186,120 L205,144" stroke="#b33d2b" strokeWidth="2.2" strokeLinecap="round" />
-                <path d="M192,128 L212,140" stroke="#1d7a45" strokeWidth="2.2" strokeLinecap="round" />
+              <path d="M232,184 L165,226" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" opacity={genoaVisible ? 1 : 0} />
+              <path d="M232,184 L184,76" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" opacity={genoaVisible ? 1 : 0} />
+              <g className="jib-telltales" opacity={genoaVisible ? 0.95 : 0}>
+                <path d="M178,112 L195,144" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M186,120 L205,144" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M192,128 L212,140" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
               </g>
-              <text x="145" y="112" fill="#f4efe7" fontSize="11" fontWeight="700" letterSpacing="1">JIB</text>
+              <text x="145" y="112" fill="#f4efe7" fontSize="11" fontWeight="700" letterSpacing="1" opacity={genoaVisible ? 1 : 0}>GENOA</text>
             </g>
           </g>
 
@@ -234,6 +273,24 @@ export function CockpitView({ scenario }: Props) {
           </g>
         </svg>
       </div>
+
+      <div className="spinlock-bank" aria-label="Boat line spinlocks">
+        {spinlocks.map((lock) => (
+          <button
+            key={lock.id}
+            type="button"
+            className={`spinlock ${lock.thin ? "thin" : ""}`}
+            title={lock.label}
+            aria-label={`${lock.label} ${lock.locked ? "locked" : "unlocked"}`}
+            aria-pressed={lock.locked}
+            onClick={() => toggleSpinlock(lock.id)}
+          >
+            <span className={`spinlock-dot ${lock.locked ? "locked" : "unlocked"}`} />
+            <span className={`spinlock-pattern ${lock.pattern} ${lock.thin ? "thin" : ""}`} />
+          </button>
+        ))}
+      </div>
+    </div>
 
       <aside className="instrument-panel">
         <div className="digital-readout">
@@ -260,9 +317,8 @@ export function CockpitView({ scenario }: Props) {
           <div className="dial-block">
             <span className="readout-label">App. wind</span>
             <div className="wind-dial" aria-label={`Apparent wind ${relativeWind} degrees`}>
+              <div className="wind-dial-bg" aria-hidden="true" />
               <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
-                <path d="M50 50 L50 12 A38 38 0 0 1 88 50 Z" fill="rgba(29,122,69,0.9)" />
-                <path d="M50 50 L50 12 A38 38 0 0 0 12 50 Z" fill="rgba(179,61,43,0.9)" />
                 <path d="M50 50 L50 12" stroke="rgba(18,50,57,0.8)" strokeWidth="1.8" />
                 <path d="M50 50 L50 88" stroke="rgba(18,50,57,0.8)" strokeWidth="1.8" />
                 <g stroke="rgba(18,50,57,0.8)" strokeWidth="1.2">
