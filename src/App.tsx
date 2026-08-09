@@ -6,8 +6,8 @@ import { raiseMainsailScenario } from "./sim/scenarios";
 import type { ScenarioState } from "./sim/types";
 import { scenarioMachine } from "./state/scenarioMachine";
 import { CommandConsole } from "./ui/CommandConsole";
-import { ScenarioCanvas } from "./ui/ScenarioCanvas";
 import { ScoreBars } from "./ui/ScoreBars";
+import { CockpitView } from "./ui/CockpitView";
 import { detectVoiceCapability, startBrowserDictation } from "./voice/browserSpeech";
 
 const localAi = createLocalAiClient(defaultLocalModels[0]);
@@ -95,18 +95,12 @@ export function App() {
         <section className="visual-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Top-down view</p>
-              <h2>Harbour training area</h2>
+              <p className="eyebrow">Cockpit view</p>
+              <h2>Helm / forward lookout</h2>
             </div>
             <span>{Math.round(scenario.timeSec)}s</span>
           </div>
-          <ScenarioCanvas scenario={scenario} />
-          <div className="instrument-strip">
-            <span>Heading {Math.round(scenario.boat.headingDeg)} deg</span>
-            <span>Wind {scenario.environment.windStrengthKnots} kt</span>
-            <span>Main {scenario.boat.mainsail}</span>
-            <span>Current {scenario.environment.tidalCurrentKnots} kt</span>
-          </div>
+          <CockpitView scenario={scenario} />
         </section>
 
         <CommandConsole

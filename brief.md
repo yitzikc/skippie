@@ -95,7 +95,8 @@ Rendering
 Phase 1
 
 * SVG or Canvas
-* Top-down 2D
+* Cockpit-first 2.5D views using simplified, readable scene composition
+* Top-down 2D view for tactical awareness, replay and debrief
 
 Phase 2
 
@@ -115,6 +116,116 @@ The simulation must be deterministic.
 
 ---
 
+# Core Player Experience
+
+The default experience should put the user in the role of skipper in the cockpit.
+
+The simulator should feel like operating from a real helm position rather than commanding a diagram.
+
+The main active-play view should be a first-person cockpit view looking forward.
+
+The interface should support three primary camera modes:
+
+* Cockpit forward view — default active-play view, looking ahead over the coachroof, mast and foredeck.
+* Cockpit aft view — optional active-play view, looking back toward the stern, wake, engine controls and crew in the cockpit.
+* Top-down view — tactical/replay view, used when needed during play and especially during debriefs for right-of-way, docking, anchoring and near-miss analysis.
+
+Switching between the three views should be quick and obvious.
+
+The user should not need to navigate menus to change view during a high-workload manoeuvre.
+
+View switching should preserve scenario state and should not pause the simulation unless the user explicitly pauses.
+
+---
+
+# Cockpit Instrumentation
+
+The cockpit view should expose the information a skipper would naturally scan.
+
+Required cockpit controls and instruments:
+
+* Engine power lever.
+* Wind direction dial.
+* Wind speed dial.
+* Digital depth display.
+* Digital speed-over-water display.
+* Port and starboard winches.
+* Rope-to-winch indication.
+
+The engine power lever should support:
+
+* Reverse 1.
+* Neutral.
+* Forward 1.
+* Forward 2.
+* Forward 3.
+
+The lever should be visually legible at a glance and should map directly to deterministic boat state.
+
+Wind instruments should help the user build a mental model rather than merely expose hidden variables.
+
+Depth and speed-over-water should be shown as compact digital displays.
+
+The display should distinguish speed through water from speed over ground if speed over ground is added later.
+
+---
+
+# Winches and Ropes
+
+Winches are part of the seamanship training surface rather than decorative cockpit furniture.
+
+Each winch should show which rope is currently loaded.
+
+Ropes should have names and colour patterns, for example:
+
+* Main halyard — solid red.
+* Topping lift — brown and white stripes.
+* Genoa sheet port — blue fleck.
+* Genoa sheet starboard — green fleck.
+* Reefing line 1 — black and white fleck.
+
+Changing the rope on a winch should happen through crew communication, not direct manipulation by the user.
+
+Example command:
+
+"Tom, put the main halyard on the starboard winch."
+
+The deterministic engine should validate whether the requested rope/winch assignment is possible and update the winch state.
+
+The crew/LLM layer may acknowledge, query ambiguity or report a problem, but the deterministic state owns the truth.
+
+Hovering over either winch should reveal a compact card listing available ropes and their colour patterns.
+
+The hover card should be informational only.
+
+It should not become a substitute for giving clear crew commands.
+
+---
+
+# Onboarding
+
+The first launch should include quick onboarding that identifies the main cockpit elements and the user's immediate objective.
+
+Onboarding should:
+
+* Explain the three views.
+* Identify engine lever, wind instruments, depth, speed and winches.
+* Explain that rope changes happen through crew commands.
+* Give one or two example skipper commands.
+* Show the first scenario objective.
+
+The onboarding should be dismissible immediately.
+
+Dismissal should take the user straight into the scenario without blocking play.
+
+The user should be able to reopen onboarding from the UI later.
+
+Onboarding should avoid feeling like a tutorial wall.
+
+It should be short, contextual and skippable.
+
+---
+
 # Simulation Architecture
 
 The system consists of independent subsystems.
@@ -129,11 +240,25 @@ State includes:
 * angular velocity
 * momentum
 * engine state
+* engine power setting
 * rudder angle
 * bow thruster
 * anchor state
+* instrument readings
+* winch state
+* rope inventory
 
 Physics should initially be simplified.
+
+Engine power should be modelled as discrete settings initially:
+
+* Reverse 1.
+* Neutral.
+* Forward 1.
+* Forward 2.
+* Forward 3.
+
+The simplified physics model should translate engine setting into acceleration, stopping distance and prop-wash effects later.
 
 ---
 
@@ -170,6 +295,23 @@ Crew members may misunderstand instructions.
 Crew members may proactively report observations.
 
 Crew members should differ in personality.
+
+---
+
+## Ropes and Deck Gear
+
+State includes:
+
+* available ropes
+* rope names
+* rope colour patterns
+* rope purpose
+* current winch assignments
+* whether a rope is free, loaded, under tension, jammed or unavailable
+
+Rope and winch state should be deterministic.
+
+Crew may make mistakes or ask for clarification, but successful rope changes are represented explicitly in world state.
 
 ---
 
@@ -286,6 +428,12 @@ The user should primarily act as skipper.
 
 They communicate using natural language or menu commands.
 
+Voice interaction is a priority direction, but text command input remains the baseline control path.
+
+Direct mouse/touch controls are appropriate for view switching, pausing, replay, onboarding and possibly the engine lever.
+
+Crew tasking should primarily happen through language.
+
 Examples:
 
 "Prepare starboard stern line."
@@ -294,9 +442,17 @@ Examples:
 
 "Bow thruster to port for two seconds."
 
+"Tom, put the main halyard on the starboard winch."
+
+"Maya, come astern one."
+
 "Abort."
 
 Crew members acknowledge instructions using closed-loop communication.
+
+Ambiguous instructions should prompt clarification or cause realistic hesitation.
+
+The system should reward clear role, action and timing in commands.
 
 ---
 
@@ -332,6 +488,9 @@ The replay should show:
 * command timeline
 * crew actions
 * critical decision points
+* view changes
+* instrument history
+* rope/winch state changes
 
 ---
 
@@ -379,6 +538,43 @@ Alternatives:
 * Phi-4 Mini — lightweight option for fast iteration if memory or responsiveness becomes a constraint.
 
 The application should support selecting the active model at runtime.
+
+---
+
+# Local AI Latency Benchmark
+
+The project should include a repeatable local benchmark for the active LLM.
+
+The benchmark should measure:
+
+* time to first token
+* total response time
+* generated tokens per second
+* input length in words and tokens
+* output length in tokens
+* warm-cache versus cold-start behaviour
+
+The benchmark should cover representative skipper interactions:
+
+* Short command: "Prepare the main halyard."
+* Medium command: "Tom, put the main halyard on the starboard winch and confirm when ready."
+* Situational query: "Bow lookout, report distance to the moored boat and whether we have room to turn."
+* Debrief prompt using a structured scenario summary.
+
+The benchmark should distinguish between:
+
+* command intent parsing
+* crew acknowledgement
+* coaching/debrief generation
+
+Near-real-time voice interaction should target a response that feels conversational.
+
+Initial target:
+
+* Crew acknowledgement: under 1.5 seconds after transcript finalisation.
+* Longer coaching response: under 5 seconds for first useful output, with streaming if possible.
+
+If the local 8B model cannot meet these targets, the app should support a smaller fast model for active play and reserve the larger model for debriefs.
 
 ---
 

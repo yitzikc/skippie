@@ -3,13 +3,13 @@ import type { ScenarioState } from "../sim/types";
 
 export const defaultLocalModels: LocalModel[] = [
   {
-    id: "mlx-qwen-8b",
+    id: "mlx-community/Qwen3-8B-4bit",
     label: "MLX Qwen 3 Instruct 8B",
     provider: "mlx",
     endpoint: "http://localhost:8080/v1/chat/completions",
   },
   {
-    id: "mlx-small-fast",
+    id: "mlx-community/Qwen3-4B-4bit",
     label: "MLX small/fast 4B profile",
     provider: "mlx",
     endpoint: "http://localhost:8080/v1/chat/completions",
