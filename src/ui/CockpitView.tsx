@@ -357,12 +357,12 @@ export function CockpitView({ scenario }: Props) {
             <span className="readout-label">Engine</span>
             <strong>{engineValue}</strong>
           </div>
-          <div className="engine-scale" aria-label="Engine RPM scale">
+          <div className="engine-scale" aria-label="Engine kRPM scale">
             <span className="rpm-mark reverse" style={{ left: "8%" }}>rev</span>
             <span className="rpm-mark neutral" style={{ left: "50%" }}>neutral</span>
-            <span className="rpm-mark forward" style={{ left: "72%" }}>1000</span>
-            <span className="rpm-mark forward" style={{ left: "80%" }}>1500</span>
-            <span className="rpm-mark forward" style={{ left: "90%" }}>2000</span>
+            <span className="rpm-mark forward" style={{ left: "72%" }}>1</span>
+            <span className="rpm-mark forward" style={{ left: "80%" }}>1.5</span>
+            <span className="rpm-mark forward" style={{ left: "90%" }}>2</span>
             <span className="engine-pointer" style={{ left: `${enginePosition}%` }} />
           </div>
         </div>
