@@ -52,10 +52,13 @@ export function CockpitView({ scenario }: Props) {
   const [spinlocks, setSpinlocks] = useState<SpinlockState[]>(initialSpinlocks);
   const [genoaFurled, setGenoaFurled] = useState<boolean>(scenario.boat.genoaFurled ?? true);
   const [genoaTack, setGenoaTack] = useState<"port" | "starboard">(scenario.boat.genoaTack ?? "starboard");
+  const [depthReference, setDepthReference] = useState<"sea-level" | "keel">("sea-level");
   const heading = Math.round(scenario.boat.headingDeg);
   const windDir = Math.round(scenario.environment.windDirectionDeg);
   const windSpeed = scenario.environment.windStrengthKnots;
-  const depth = (6 + scenario.boat.speedKnots * 1.8).toFixed(1);
+  const seaLevelDepth = 6 + scenario.boat.speedKnots * 1.8;
+  const keelDepth = Math.max(0, seaLevelDepth - 1.8);
+  const depth = (depthReference === "sea-level" ? seaLevelDepth : keelDepth).toFixed(1);
   const speedOverWater = scenario.boat.speedKnots.toFixed(1);
   const engineValue = engineMap[scenario.boat.engine] ?? "IDLE";
 
@@ -306,6 +309,24 @@ export function CockpitView({ scenario }: Props) {
         <div className="digital-readout">
           <span className="readout-label">Depth</span>
           <strong>{depth} m</strong>
+          <div className="depth-reference" role="group" aria-label="Depth reference">
+            <button
+              type="button"
+              className={depthReference === "sea-level" ? "active" : ""}
+              aria-pressed={depthReference === "sea-level"}
+              onClick={() => setDepthReference("sea-level")}
+            >
+              Sea level
+            </button>
+            <button
+              type="button"
+              className={depthReference === "keel" ? "active" : ""}
+              aria-pressed={depthReference === "keel"}
+              onClick={() => setDepthReference("keel")}
+            >
+              Keel
+            </button>
+          </div>
         </div>
 
         <div className="digital-readout">
