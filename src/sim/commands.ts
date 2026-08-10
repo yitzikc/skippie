@@ -25,8 +25,24 @@ export function parseSkipperCommand(raw: string): SkipperCommand {
     return { raw, intent: "brief", targetRole, clarity };
   }
 
+  if (isHelmInstruction(text) && (text.includes("to port") || text.includes("turn port") || text.includes("port helm"))) {
+    return { raw, intent: "helm_port", targetRole: "helm", clarity };
+  }
+
+  if (isHelmInstruction(text) && (text.includes("to starboard") || text.includes("turn starboard") || text.includes("starboard helm"))) {
+    return { raw, intent: "helm_starboard", targetRole: "helm", clarity };
+  }
+
   if (text.includes("head to wind") || text.includes("into the wind")) {
     return { raw, intent: "helm_head_to_wind", targetRole: targetRole ?? "helm", clarity };
+  }
+
+  if (isHelmInstruction(text) && text.includes("leeward")) {
+    return { raw, intent: "helm_leeward", targetRole: "helm", clarity };
+  }
+
+  if (isHelmInstruction(text) && text.includes("windward")) {
+    return { raw, intent: "helm_windward", targetRole: "helm", clarity };
   }
 
   if (text.includes("prepare") && (text.includes("main") || text.includes("mainsail"))) {
@@ -46,6 +62,10 @@ export function parseSkipperCommand(raw: string): SkipperCommand {
   }
 
   return { raw, intent: "unknown", clarity };
+}
+
+function isHelmInstruction(text: string) {
+  return text.includes("helm") || text.includes("maya") || text.includes("steer") || text.includes("turn");
 }
 
 function findRole(text: string): CrewRole | undefined {

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useState } from "react";
 import type { VoiceCapability } from "../voice/types";
 
 type Props = {
@@ -22,11 +22,22 @@ const quickCommands = [
 export function CommandConsole({ disabled, voiceEnabled, voiceCapability, onCommand, onToggleVoice, onListen }: Props) {
   const [draft, setDraft] = useState("");
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
+  function sendDraft() {
     if (!draft.trim()) return;
     onCommand(draft);
     setDraft("");
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    sendDraft();
+  }
+
+  function handleDraftKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && event.metaKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      sendDraft();
+    }
   }
 
   return (
@@ -44,6 +55,7 @@ export function CommandConsole({ disabled, voiceEnabled, voiceCapability, onComm
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleDraftKeyDown}
           placeholder="Example: Helm, keep us head to wind."
           disabled={disabled}
         />
@@ -51,8 +63,8 @@ export function CommandConsole({ disabled, voiceEnabled, voiceCapability, onComm
           <button type="button" onClick={onListen} disabled={!voiceEnabled || !voiceCapability.available || disabled}>
             Listen
           </button>
-          <button type="submit" disabled={disabled || draft.trim().length === 0}>
-            Send
+          <button type="submit" disabled={disabled || draft.trim().length === 0} title="⌘+Enter on macOS; Windows key+Enter on Windows">
+            Send <span aria-hidden="true">⌘↵</span>
           </button>
         </div>
       </form>

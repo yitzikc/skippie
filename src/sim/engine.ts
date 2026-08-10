@@ -10,7 +10,7 @@ export function tickScenario(state: ScenarioState, deltaSec = 4): ScenarioState 
   next.timeSec += deltaSec;
 
   const windError = smallestAngle(next.boat.headingDeg, next.environment.windDirectionDeg);
-  next.boat.angularVelocity = windError * -0.006 + next.boat.rudderAngleDeg * 0.003;
+  next.boat.angularVelocity = windError * 0.006 + next.boat.rudderAngleDeg * 0.003;
   next.boat.headingDeg = normalizeHeading(next.boat.headingDeg + next.boat.angularVelocity * deltaSec);
   next.boat.x += Math.sin((next.boat.headingDeg * Math.PI) / 180) * next.boat.speedKnots * 0.18;
   next.boat.y -= Math.cos((next.boat.headingDeg * Math.PI) / 180) * next.boat.speedKnots * 0.18;
@@ -47,10 +47,30 @@ function applyCommandEffects(state: ScenarioState, command: SkipperCommand) {
       updateCrewTask(state, "bow", "Maintaining lookout");
       break;
     case "helm_head_to_wind":
-      state.boat.rudderAngleDeg = smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg) > 0 ? -8 : 8;
+      state.boat.rudderAngleDeg = smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg) > 0 ? 8 : -8;
       state.score.situationalAwareness = clampScore(state.score.situationalAwareness + 5);
       state.events.push(event(state, "crew", "Maya: Head to wind, understood.", 4));
       updateCrewTask(state, "helm", "Steering head to wind");
+      break;
+    case "helm_port":
+      state.boat.rudderAngleDeg = -18;
+      state.events.push(event(state, "crew", "Maya: Helm to port, understood.", 4));
+      updateCrewTask(state, "helm", "Turning to port");
+      break;
+    case "helm_starboard":
+      state.boat.rudderAngleDeg = 18;
+      state.events.push(event(state, "crew", "Maya: Helm to starboard, understood.", 4));
+      updateCrewTask(state, "helm", "Turning to starboard");
+      break;
+    case "helm_leeward":
+      state.boat.rudderAngleDeg = smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg) > 0 ? -12 : 12;
+      state.events.push(event(state, "crew", "Maya: Steering away from the wind, understood.", -2));
+      updateCrewTask(state, "helm", "Steering leeward");
+      break;
+    case "helm_windward":
+      state.boat.rudderAngleDeg = smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg) > 0 ? 12 : -12;
+      state.events.push(event(state, "crew", "Maya: Steering toward the wind, understood.", 3));
+      updateCrewTask(state, "helm", "Steering windward");
       break;
     case "prepare_main":
       state.boat.mainsail = state.boat.mainsail === "down" ? "preparing" : state.boat.mainsail;
