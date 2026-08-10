@@ -21,6 +21,14 @@ export function parseSkipperCommand(raw: string): SkipperCommand {
     return { raw, intent: "abort", clarity };
   }
 
+  if (targetRole === "mast" && isStatusQuestion(text)) {
+    return { raw, intent: "ask_mast_status", targetRole, clarity };
+  }
+
+  if (targetRole === "helm" && isStatusQuestion(text)) {
+    return { raw, intent: "ask_helm_status", targetRole, clarity };
+  }
+
   if (text.includes("brief") || text.includes("plan")) {
     return { raw, intent: "brief", targetRole, clarity };
   }
@@ -66,6 +74,10 @@ export function parseSkipperCommand(raw: string): SkipperCommand {
 
 function isHelmInstruction(text: string) {
   return text.includes("helm") || text.includes("maya") || text.includes("steer") || text.includes("turn");
+}
+
+function isStatusQuestion(text: string) {
+  return text.includes("?") || /\b(is|are|what|why|status|problem|wrong|clear|tangled)\b/.test(text);
 }
 
 function findRole(text: string): CrewRole | undefined {

@@ -18,6 +18,7 @@ export const raiseMainsailScenario: ScenarioState = {
     bowThruster: "off",
     anchor: "stowed",
     mainsail: "down",
+    mainHoistIssue: "none",
     genoaFurled: true,
     genoaTack: "starboard",
   },

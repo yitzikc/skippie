@@ -25,6 +25,7 @@ export type BoatState = {
   bowThruster: "off" | "port" | "starboard";
   anchor: "stowed" | "ready" | "deployed";
   mainsail: "down" | "preparing" | "hoisting" | "raised" | "lowering";
+  mainHoistIssue: "none" | "sail-luffing" | "halyard-tangle";
   genoaFurled: boolean;
   genoaTack: "port" | "starboard";
 };
@@ -86,6 +87,8 @@ export type SkipperCommand = {
     | "helm_starboard"
     | "helm_leeward"
     | "helm_windward"
+    | "ask_mast_status"
+    | "ask_helm_status"
     | "prepare_main"
     | "hoist_main"
     | "abort"

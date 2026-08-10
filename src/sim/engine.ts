@@ -17,8 +17,19 @@ export function tickScenario(state: ScenarioState, deltaSec = 4): ScenarioState 
 
   if (Math.abs(windError) > 35 && next.boat.mainsail === "hoisting") {
     next.score.safetyMargin = clampScore(next.score.safetyMargin - 4);
-    next.events.push(event(next, "risk", "The bow is falling off the wind while the main is being hoisted.", -4));
+    if (next.boat.mainHoistIssue !== "sail-luffing") {
+      next.boat.mainHoistIssue = "sail-luffing";
+      next.events.push(event(next, "risk", "The bow is falling off the wind while the main is being hoisted.", -4));
+      next.events.push(event(next, "crew", "Tom: The main is luffing halfway up; the halyard is clear, but we are too far off the wind. Maya, should I hold or lower?", -2));
+      updateCrewTask(next, "mast", "Holding the mainsail—awaiting a safe heading");
+    }
+  } else if (next.boat.mainsail === "hoisting" && next.boat.mainHoistIssue === "sail-luffing") {
+    next.boat.mainHoistIssue = "none";
+    next.events.push(event(next, "crew", "Tom: We are back into the wind and the main is drawing clear. Continuing the hoist.", 4));
+    updateCrewTask(next, "mast", "Hoisting mainsail");
   }
+
+  completeHoistIfReady(next);
 
   return next;
 }
@@ -72,6 +83,13 @@ function applyCommandEffects(state: ScenarioState, command: SkipperCommand) {
       state.events.push(event(state, "crew", "Maya: Steering toward the wind, understood.", 3));
       updateCrewTask(state, "helm", "Steering windward");
       break;
+    case "ask_mast_status":
+      respondToMastStatus(state);
+      break;
+    case "ask_helm_status":
+      state.events.push(event(state, "observation", `Maya: Heading ${Math.round(state.boat.headingDeg)}°. Wind is ${Math.round(smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg))}° from the bow.`, 3));
+      updateCrewTask(state, "helm", "Reporting heading and wind angle");
+      break;
     case "prepare_main":
       state.boat.mainsail = state.boat.mainsail === "down" ? "preparing" : state.boat.mainsail;
       state.score.proceduralCompliance = clampScore(state.score.proceduralCompliance + 5);
@@ -95,12 +113,13 @@ function applyCommandEffects(state: ScenarioState, command: SkipperCommand) {
       break;
     case "abort":
       state.boat.mainsail = state.boat.mainsail === "raised" ? "raised" : "down";
+      state.boat.mainHoistIssue = "none";
       state.score.safetyMargin = clampScore(state.score.safetyMargin + 10);
       state.events.push(event(state, "crew", "Crew stop the manoeuvre and secure loose lines.", 8));
       break;
     case "assign":
       state.score.workloadDistribution = clampScore(state.score.workloadDistribution + 3);
-      state.events.push(event(state, "crew", "The assigned crew member confirms the instruction.", 2));
+      state.events.push(event(state, "crew", clarificationFor(command.targetRole), 0));
       break;
     case "unknown":
       state.score.communicationClarity = clampScore(state.score.communicationClarity - 5);
@@ -108,10 +127,39 @@ function applyCommandEffects(state: ScenarioState, command: SkipperCommand) {
       break;
   }
 
-  if (state.boat.mainsail === "hoisting" && state.score.proceduralCompliance > 65 && state.score.safetyMargin > 60) {
+}
+
+function completeHoistIfReady(state: ScenarioState) {
+  const windError = Math.abs(smallestAngle(state.boat.headingDeg, state.environment.windDirectionDeg));
+  if (state.boat.mainsail === "hoisting" && state.boat.mainHoistIssue === "none" && windError <= 25 && state.score.proceduralCompliance > 65 && state.score.safetyMargin > 60) {
     state.boat.mainsail = "raised";
     state.completed = true;
     state.events.push(event(state, "score", "Mainsail raised cleanly. Debrief available.", 12));
+  }
+}
+
+function respondToMastStatus(state: ScenarioState) {
+  const response = state.boat.mainHoistIssue === "halyard-tangle"
+    ? "Tom: Yes—the halyard is tangled at the masthead. I need to lower the sail and clear it before we continue."
+    : state.boat.mainHoistIssue === "sail-luffing"
+      ? "Tom: The halyard is running free. The sail is luffing because we are off the wind; please bring her head to wind."
+      : state.boat.mainsail === "hoisting"
+        ? "Tom: Halyard is clear and the sail is moving freely. Continuing the hoist."
+        : "Tom: Halyard is clear. The main is ready when you are.";
+  state.events.push(event(state, "observation", response, 3));
+  updateCrewTask(state, "mast", "Reporting mainsail and halyard status");
+}
+
+function clarificationFor(role?: string) {
+  switch (role) {
+    case "helm":
+      return "Maya: Please confirm—port, starboard, or head to wind?";
+    case "mast":
+      return "Tom: Please confirm—prepare the main, hoist, or lower it?";
+    case "bow":
+      return "Elena: Please confirm what you need me to watch or report.";
+    default:
+      return "Crew: Please clarify the task and who should take it.";
   }
 }
 
