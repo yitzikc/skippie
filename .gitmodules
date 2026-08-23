@@ -1,0 +1,3 @@
+[submodule "physics/Python-VPP"]
+	path = physics/Python-VPP
+	url = https://github.com/marinlauber/Python-VPP.git
