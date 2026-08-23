@@ -732,3 +732,415 @@ meter {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ==========================================================================
+   RAYMARINE ST60+ STYLED INSTRUMENTS
+   ========================================================================== */
+
+.marine-instruments-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+/* Outer Bezel (housing frame) */
+.st60-instrument-bezel {
+  position: relative;
+  width: 182px;
+  height: 194px;
+  background: linear-gradient(135deg, #53585b 0%, #3e4244 50%, #2f3234 100%);
+  border-radius: 12px;
+  border: 1px solid #232526;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    inset 0 2px 2px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 10px 14px 10px;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* Embossed Headers */
+.instrument-top-label {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 4px 4px;
+  box-sizing: border-box;
+}
+
+.st60-badge {
+  font-size: 8.5px;
+  font-weight: 900;
+  color: #7b8184;
+  text-shadow: -1px -1px 0 #1b1c1d, 1px 1px 0 #6e7477;
+  letter-spacing: 0.05em;
+}
+
+.model-badge {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #7b8184;
+  text-shadow: -1px -1px 0 #1b1c1d, 1px 1px 0 #6e7477;
+  letter-spacing: 0.1em;
+}
+
+/* The LCD screen frame/bezel inset */
+.st60-lcd-screen {
+  position: relative;
+  width: 158px;
+  height: 122px;
+  background: linear-gradient(180deg, #979fa0 0%, #a4acac 100%);
+  border: 2px solid #282a2b;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.45),
+    0 1px 1px rgba(255, 255, 255, 0.18);
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Digital segmented-style font simulation */
+.lcd-digits, .lcd-digits-small, .wind-digital-value {
+  font-family: monospace;
+  font-weight: 900;
+  color: rgba(18, 22, 23, 0.95);
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.3);
+  letter-spacing: -0.05em;
+}
+
+/* Rows for Tridata */
+.lcd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1.5px solid rgba(0, 0, 0, 0.12);
+  padding-bottom: 2px;
+  height: 35px;
+}
+
+.lcd-row:last-of-type {
+  border-bottom: none;
+  height: 27px;
+  padding-bottom: 0;
+}
+
+.row-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.lcd-label {
+  font-size: 8px;
+  font-weight: 800;
+  color: #2b3032;
+  letter-spacing: 0.05em;
+}
+
+.lcd-label-small {
+  font-size: 7px;
+  font-weight: 900;
+  color: #2b3032;
+}
+
+.lcd-sub-label {
+  font-size: 6px;
+  font-weight: 700;
+  color: #4b5052;
+  margin-top: 1px;
+}
+
+.lcd-digits {
+  font-size: 26px;
+  line-height: 1;
+  text-align: right;
+  margin-bottom: -2px;
+}
+
+.lcd-digits-small {
+  font-size: 18px;
+  line-height: 1;
+  text-align: right;
+  display: flex;
+  align-items: baseline;
+}
+
+.log-units {
+  font-size: 8px;
+  font-weight: 800;
+  margin-left: 2px;
+  color: #2b3032;
+}
+
+/* Branding Labels */
+.lcd-branding {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 6px;
+  font-weight: 700;
+  color: #b82b2b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Wind Instrument specifics */
+.wind-dial-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  background: #cbd3d3;
+}
+
+.wind-dial-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.dial-num {
+  font-size: 11px;
+  font-weight: 900;
+  fill: #222628;
+  text-anchor: middle;
+}
+
+/* Digital readout block for wind speed - positioned perfectly below pivot to clear ticks */
+.wind-digital-box {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 30px;
+  background: #b5bebe;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.3s ease;
+}
+
+.wind-digital-value {
+  font-size: 18px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.wind-digital-label {
+  font-size: 6px;
+  font-weight: 800;
+  color: #3b3f41;
+  margin-top: -1px;
+}
+
+/* True / App indicators at screen bottom */
+.wind-mode-indicators {
+  position: absolute;
+  bottom: 12px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 900;
+  color: rgba(30,35,37,0.32);
+  z-index: 2;
+}
+
+.mode-indicator.active {
+  color: rgba(30, 35, 37, 0.95);
+}
+
+.mode-indicator-separator {
+  margin: 0 5px;
+  opacity: 0.3;
+}
+
+.wind-branding {
+  bottom: 3px;
+  z-index: 2;
+}
+
+/* Rubbery Buttons at bottom - constrained and arced slightly */
+.st60-button-bank {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+.st60-button {
+  background: linear-gradient(180deg, #2b2e2f 0%, #171819 100%);
+  border: 1px solid #101112;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  color: #cdd2d5;
+  font-size: 5.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+  cursor: pointer;
+  box-shadow: 
+    0 1.5px 3px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.05s, box-shadow 0.05s;
+  text-transform: uppercase;
+  padding: 0;
+  width: 100%;
+  max-width: 31px;
+  margin: 0 auto;
+}
+
+.st60-button.text-stacked span {
+  display: block;
+  font-size: 5px;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.st60-button:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 0.5px 1px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  background: #121314;
+}
+
+.button-icon-svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* ==========================================================================
+   AMBER ORANGE BACKLIGHT / NIGHT MODE GLOW EFFECTS
+   ========================================================================== */
+
+/* Active backlight glowing states */
+.st60-instrument-bezel.backlight-active .st60-lcd-screen {
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(255, 120, 0, 0.3);
+}
+
+.st60-instrument-bezel[data-backlight="1"] .st60-lcd-screen {
+  background: #cca080; /* low backlight */
+}
+
+.st60-instrument-bezel[data-backlight="2"] .st60-lcd-screen {
+  background: #e28e51; /* mid backlight */
+}
+
+.st60-instrument-bezel[data-backlight="3"] .st60-lcd-screen {
+  background: #ff7f24; /* high backlight */
+}
+
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .wind-digital-box {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.st60-instrument-bezel[data-backlight="1"] .wind-digital-box { background: #b08d75; }
+.st60-instrument-bezel[data-backlight="2"] .wind-digital-box { background: #ca814c; }
+.st60-instrument-bezel[data-backlight="3"] .wind-digital-box { background: #e57422; }
+
+/* Invert tick lines/labels or needle colors slightly under high amber glow for high readability */
+.st60-instrument-bezel.backlight-active .st60-lcd-screen text,
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .lcd-digits,
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .lcd-digits-small,
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .wind-digital-value,
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .lcd-label,
+.st60-instrument-bezel.backlight-active .st60-lcd-screen .lcd-label-small {
+  color: #0c0d0d;
+  text-shadow: 0 0 1px rgba(255,100,0,0.15);
+}
+
+/* Seven Segment Displays */
+.seven-segment-container {
+  display: flex;
+  gap: 1.5px;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.seven-segment-digit-svg {
+  overflow: visible;
+  display: inline-block;
+}
+
+.seven-segment-digit-svg .segment {
+  fill-rule: evenodd;
+  transition: fill 0.12s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+
+.seven-segment-digit-svg .segment-dp {
+  transition: fill 0.12s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+
+/* Lit state: dark charcoal-grey under normal LCD, pitch black under backlighting */
+.seven-segment-digit-svg .segment.lit,
+.seven-segment-digit-svg .segment-dp.lit {
+  fill: rgba(14, 18, 20, 0.95);
+}
+
+/* Unlit state: faint ghost segment layout shadow under glass */
+.seven-segment-digit-svg .segment.unlit,
+.seven-segment-digit-svg .segment-dp.unlit {
+  fill: rgba(0, 0, 0, 0.04);
+}
+
+/* Glow Inversions when night light backlighting is activated */
+.st60-instrument-bezel.backlight-active .seven-segment-digit-svg .segment.lit,
+.st60-instrument-bezel.backlight-active .seven-segment-digit-svg .segment-dp.lit {
+  fill: #080a0a;
+}
+
+.st60-instrument-bezel.backlight-active .seven-segment-digit-svg .segment.unlit,
+.st60-instrument-bezel.backlight-active .seven-segment-digit-svg .segment-dp.unlit {
+  fill: rgba(0, 0, 0, 0.08);
+}
+
+.lcd-digits-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 2px;
+}
+
+.lcd-digits-container.small {
+  gap: 2px;
+  align-items: center;
+  padding-bottom: 0;
+}

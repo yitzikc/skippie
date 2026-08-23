@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ScenarioState } from "../sim/types";
+import { TridataInstrument, WindInstrument } from "./RaymarineInstruments";
 
 type Props = {
   scenario: ScenarioState;
@@ -52,17 +53,22 @@ export function CockpitView({ scenario }: Props) {
   const [spinlocks, setSpinlocks] = useState<SpinlockState[]>(initialSpinlocks);
   const [genoaFurled, setGenoaFurled] = useState<boolean>(scenario.boat.genoaFurled ?? true);
   const [genoaTack, setGenoaTack] = useState<"port" | "starboard">(scenario.boat.genoaTack ?? "starboard");
-  const [depthReference, setDepthReference] = useState<"sea-level" | "keel">("sea-level");
+  const [backlightLevel, setBacklightLevel] = useState<number>(0);
   const heading = Math.round(scenario.boat.headingDeg);
   const windDir = Math.round(scenario.environment.windDirectionDeg);
   const windSpeed = scenario.environment.windStrengthKnots;
-  const seaLevelDepth = 6 + scenario.boat.speedKnots * 1.8;
-  const keelDepth = Math.max(0, seaLevelDepth - 1.8);
-  const depth = (depthReference === "sea-level" ? seaLevelDepth : keelDepth).toFixed(1);
-  const speedOverWater = scenario.boat.speedKnots.toFixed(1);
   const engineValue = engineMap[scenario.boat.engine] ?? "IDLE";
 
-  const relativeWind = normalizeDegrees(windDir - heading);
+  // Drive cockpit wind instruments using high-fidelity VPP apparent wind outputs if available
+  const apparentWindAngle = scenario.boat.apparentWindAngleDeg !== undefined
+    ? Math.round(scenario.boat.apparentWindAngleDeg)
+    : normalizeDegrees(windDir - heading);
+
+  const apparentWindSpeed = scenario.boat.apparentWindSpeedKnots !== undefined
+    ? scenario.boat.apparentWindSpeedKnots
+    : windSpeed;
+
+  const relativeWind = apparentWindAngle;
   const tack = relativeWind >= 0 ? "starboard" : "port";
   const boomOffset = clamp(Math.round(relativeWind * 0.64 + scenario.boat.rudderAngleDeg * 0.35), -55, 55);
   const jibOffset = clamp(Math.round(relativeWind * 0.72), -52, 52);
@@ -301,76 +307,17 @@ export function CockpitView({ scenario }: Props) {
           <strong>{heading}°</strong>
         </div>
 
-        <div className="digital-readout">
-          <span className="readout-label">Heading</span>
-          <strong>{heading}°</strong>
-        </div>
-
-        <div className="digital-readout">
-          <span className="readout-label">Depth</span>
-          <strong>{depth} m</strong>
-          <div className="depth-reference" role="group" aria-label="Depth reference">
-            <button
-              type="button"
-              className={depthReference === "sea-level" ? "active" : ""}
-              aria-pressed={depthReference === "sea-level"}
-              onClick={() => setDepthReference("sea-level")}
-            >
-              Sea level
-            </button>
-            <button
-              type="button"
-              className={depthReference === "keel" ? "active" : ""}
-              aria-pressed={depthReference === "keel"}
-              onClick={() => setDepthReference("keel")}
-            >
-              Keel
-            </button>
-          </div>
-        </div>
-
-        <div className="digital-readout">
-          <span className="readout-label">SOW</span>
-          <strong>{speedOverWater} kn</strong>
-        </div>
-
-        <div className="instrument-row">
-          <div className="dial-block">
-            <span className="readout-label">App. wind</span>
-            <div className="wind-dial" aria-label={`Apparent wind ${relativeWind} degrees`}>
-              <div className="wind-dial-bg" aria-hidden="true" />
-              <svg viewBox="0 0 100 100" role="img" aria-hidden="true">
-                <path d="M50 50 L50 12" stroke="rgba(18,50,57,0.8)" strokeWidth="1.8" />
-                <path d="M50 50 L50 88" stroke="rgba(18,50,57,0.8)" strokeWidth="1.8" />
-                <g stroke="rgba(18,50,57,0.8)" strokeWidth="1.2">
-                  <line x1="50" y1="12" x2="50" y2="18" />
-                  <line x1="50" y1="88" x2="50" y2="82" />
-                  <line x1="12" y1="50" x2="18" y2="50" />
-                  <line x1="88" y1="50" x2="82" y2="50" />
-                  <line x1="24" y1="24" x2="28" y2="28" />
-                  <line x1="76" y1="24" x2="72" y2="28" />
-                  <line x1="24" y1="76" x2="28" y2="72" />
-                  <line x1="76" y1="76" x2="72" y2="72" />
-                </g>
-                <g fontSize="6" fill="rgba(18,50,57,0.8)" textAnchor="middle">
-                  <text x="50" y="96">0°</text>
-                  <text x="18" y="54">180°</text>
-                  <text x="82" y="54">180°</text>
-                </g>
-                <line x1="50" y1="50" x2="50" y2="18" stroke="#f4efe7" strokeWidth="3" strokeLinecap="round" transform={`rotate(${relativeWind} 50 50)`} />
-                <circle cx="50" cy="50" r="4" fill="#f4efe7" stroke="rgba(18,50,57,0.8)" strokeWidth="1" />
-              </svg>
-            </div>
-            <strong>{Math.abs(relativeWind)}° {relativeWind >= 0 ? "stbd" : "port"}</strong>
-          </div>
-
-          <div className="dial-block">
-            <span className="readout-label">Wind</span>
-            <div className="wind-speed-dial" aria-label={`Wind speed ${windSpeed} knots`}>
-              <div className="wind-speed-ring" style={{ transform: `rotate(${Math.min((windSpeed / 20) * 180, 180)}deg)` }} />
-            </div>
-            <strong>{windSpeed.toFixed(0)} kt</strong>
-          </div>
+        <div className="marine-instruments-grid">
+          <TridataInstrument
+            boat={scenario.boat}
+            backlightLevel={backlightLevel}
+          />
+          <WindInstrument
+            boat={scenario.boat}
+            environment={scenario.environment}
+            backlightLevel={backlightLevel}
+            onToggleBacklight={() => setBacklightLevel((prev) => (prev + 1) % 4)}
+          />
         </div>
 
         <div className="engine-block">
