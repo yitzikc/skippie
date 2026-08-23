@@ -3,6 +3,7 @@ import {
   normalizeDegrees,
   projectEntity,
   calculateRiggingCoordinates,
+  calculateApparentTilt,
 } from "./projection";
 
 describe("1. Degrees Normalization Math", () => {
@@ -87,5 +88,27 @@ describe("3. Rigging Geometry & Backed Sails (Heave-To)", () => {
     // Wind on port (-30), genoa sheeted starboard -> Standard lee trim (NOT backed)
     const rigNotBacked = calculateRiggingCoordinates(0, 0, 0, 0, -30, "starboard", true);
     expect(rigNotBacked.isJibBacked).toBe(false);
+  });
+});
+
+describe("4. Horizon Tilt Perspective Scaling (Heel vs View Angle)", () => {
+  it("should return the full negative heel angle when looking straight forward (0 deg)", () => {
+    expect(calculateApparentTilt(15, 0)).toBeCloseTo(-15, 2);
+    expect(calculateApparentTilt(-12, 0)).toBeCloseTo(12, 2);
+  });
+
+  it("should return exactly 0 (no tilt) when looking 90 degrees to either side (beam)", () => {
+    expect(calculateApparentTilt(15, 90)).toBeCloseTo(0, 2);
+    expect(calculateApparentTilt(15, -90)).toBeCloseTo(0, 2);
+  });
+
+  it("should return the inverted heel angle when looking straight backward (180 deg)", () => {
+    expect(calculateApparentTilt(15, 180)).toBeCloseTo(15, 2);
+    expect(calculateApparentTilt(-12, 180)).toBeCloseTo(-12, 2);
+  });
+
+  it("should apply cosine scaling correctly at intermediate angles (e.g. 60 deg is half tilt)", () => {
+    // cos(60 deg) = 0.5. For 15 deg heel, apparent tilt is -7.5 deg
+    expect(calculateApparentTilt(15, 60)).toBeCloseTo(-7.5, 2);
   });
 });

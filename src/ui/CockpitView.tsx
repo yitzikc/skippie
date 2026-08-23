@@ -3,7 +3,7 @@ import type { ScenarioState } from "../sim/types";
 import { TridataInstrument, WindInstrument } from "./RaymarineInstruments";
 import { MarineEntities } from "./MarineEntities";
 import { BackgroundScenery } from "./BackgroundScenery";
-import { calculateRiggingCoordinates } from "../sim/projection";
+import { calculateRiggingCoordinates, calculateApparentTilt } from "../sim/projection";
 
 type Props = {
   scenario: ScenarioState;
@@ -143,6 +143,9 @@ export function CockpitView({ scenario }: Props) {
     isJibBacked
   } = rig;
 
+  // Calculate apparent horizon tilt angle based on boat heel and skipper's view angle
+  const apparentTilt = calculateApparentTilt(scenario.boat.heelDeg, viewAngle);
+
   // Tacking/Gybing and Irons luffing indicators
   const isMainLuffing = scenario.boat.mainsail !== "down" && (
     Math.abs(apparentWindAngle) < 22 ||
@@ -154,6 +157,17 @@ export function CockpitView({ scenario }: Props) {
     Math.abs(apparentWindAngle) < 22 ||
     Math.abs(jibOffset) < 10
   );
+
+  // Dynamic luff-relative telltales coordinate systems
+  const luffX_lower = bowX + (mastX - 20 - bowX) * 0.32;
+  const luffY_lower = 275 - (275 - 60) * 0.32;
+  const telltaleX_lower = luffX_lower + (finalJibClewX - luffX_lower) * 0.08;
+  const telltaleY_lower = luffY_lower + (finalJibClewY - luffY_lower) * 0.06;
+
+  const luffX_upper = bowX + (mastX - 20 - bowX) * 0.55;
+  const luffY_upper = 275 - (275 - 60) * 0.55;
+  const telltaleX_upper = luffX_upper + (finalJibClewX - luffX_upper) * 0.08;
+  const telltaleY_upper = luffY_upper + (finalJibClewY - luffY_upper) * 0.06;
 
   const enginePosition = (() => {
     switch (scenario.boat.engine) {
@@ -217,26 +231,29 @@ export function CockpitView({ scenario }: Props) {
             </radialGradient>
           </defs>
 
-          {/* Gyroscopic 2.5D Background Scenery (Clouds & Land Contours) */}
-          <BackgroundScenery heading={viewHeading} />
+          {/* Gyroscopic & Heel-Tilting Outside World Layer (Horizon tilts as boat heels!) */}
+          <g transform={`rotate(${apparentTilt} 350 200)`} className="tilting-background-world">
+            {/* Gyroscopic 2.5D Background Scenery (Clouds & Land Contours) */}
+            <BackgroundScenery heading={viewHeading} />
 
-          {/* Sea water horizontal backdrop */}
-          <path d="M0,240 Q270,180 700,250 L700,420 L0,420 Z" fill="rgba(71,128,138,0.84)" />
-          <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
+            {/* Sea water horizontal backdrop */}
+            <path d="M0,240 Q270,180 700,250 L700,420 L0,420 Z" fill="rgba(71,128,138,0.84)" />
+            <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
 
-          {/* Projected Marine Navigation Entities (IALA Region A Buoys & Background Vessels) */}
-          <MarineEntities entities={scenario.entities || []} boat={scenario.boat} viewHeading={viewHeading} />
+            {/* Projected Marine Navigation Entities (IALA Region A Buoys & Background Vessels) */}
+            <MarineEntities entities={scenario.entities || []} boat={scenario.boat} viewHeading={viewHeading} />
+          </g>
 
           {/* 1. STATIONARY STANDING RIGGING LAYER (Shrouds & Forestay) */}
-          <path d="M 160,282 L 310,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
-          <path d="M 540,282 L 390,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
+          <path d={`M ${mastX - 190},282 L ${mastX - 40},88 L ${mastX},16`} fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
+          <path d={`M ${mastX + 190},282 L ${mastX + 40},88 L ${mastX},16`} fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
           {/* Spreader Bars */}
-          <line x1="350" y1="88" x2="310" y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
-          <line x1="350" y1="87" x2="310" y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
-          <line x1="350" y1="88" x2="390" y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
-          <line x1="350" y1="87" x2="390" y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+          <line x1={mastX} y1="88" x2={mastX - 40} y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
+          <line x1={mastX} y1="87" x2={mastX - 40} y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+          <line x1={mastX} y1="88" x2={mastX + 40} y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
+          <line x1={mastX} y1="87" x2={mastX + 40} y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
           {/* Forestay */}
-          <line x1="220" y1="275" x2="350" y2="16" stroke="#474d4f" strokeWidth="1.8" opacity="0.9" />
+          <line x1={bowX} y1="275" x2={mastX} y2="16" stroke="#474d4f" strokeWidth="1.8" opacity="0.9" />
 
           {/* 2. DYNAMIC MAINSAIL LAYER (Swings and flutters dynamically) */}
           {sailProgress > 0.05 ? (
@@ -288,19 +305,19 @@ export function CockpitView({ scenario }: Props) {
                 strokeWidth="1"
                 opacity="0.97"
               />
-              {/* Telltales fluttering on Genoa leech - fly horizontal when trimmed, droop down when luffing */}
+              {/* Telltales fluttering on Genoa luff chord - fly horizontal when trimmed, droop down when luffing */}
               <g className="jib-telltales" opacity={isJibLuffing ? 0.45 : jibTelltaleOpacity}>
                 {isJibLuffing || apparentWindSpeed <= 6 ? (
                   <>
-                    {/* Drooping down vertical loose telltales */}
-                    <path d={`M ${finalJibClewX - 18},${finalJibClewY - 36} L ${finalJibClewX - 18},${finalJibClewY - 24}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                    <path d={`M ${finalJibClewX - 10},${finalJibClewY - 22} L ${finalJibClewX - 10},${finalJibClewY - 10}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    {/* Drooping down vertical loose telltales on luff */}
+                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper},${telltaleY_upper + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower},${telltaleY_lower + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
                   </>
                 ) : (
                   <>
-                    {/* Streamlined perfectly horizontal active windward/leeward telltales */}
-                    <path d={`M ${finalJibClewX - 18},${finalJibClewY - 36} L ${finalJibClewX - 2},${finalJibClewY - 36}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                    <path d={`M ${finalJibClewX - 10},${finalJibClewY - 22} L ${finalJibClewX + 6},${finalJibClewY - 22}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    {/* Streamlined perfectly horizontal active windward/leeward telltales flowing aft */}
+                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper + (finalJibClewX > luffX_upper ? 14 : -14)},${telltaleY_upper}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower + (finalJibClewX > luffX_lower ? 14 : -14)},${telltaleY_lower}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
                   </>
                 )}
               </g>
@@ -308,7 +325,7 @@ export function CockpitView({ scenario }: Props) {
               <line
                 x1={finalJibClewX}
                 y1={finalJibClewY}
-                x2={isJibBacked ? "240" : "180"}
+                x2={isJibBacked ? mastX - 110 : mastX - 170}
                 y2="275"
                 stroke={isJibBacked ? "#9a5547" : "#3b4d53"}
                 strokeWidth="2.2"
@@ -323,9 +340,9 @@ export function CockpitView({ scenario }: Props) {
             /* Rolled/Furled Jib represented as a thick cylindrical roll with spiral wraps, using same genoa color #jibGradient */
             <g>
               <line
-                x1="220"
+                x1={bowX}
                 y1="275"
-                x2="330"
+                x2={mastX - 20}
                 y2="60"
                 stroke="url(#jibGradient)"
                 strokeWidth="6.5"
@@ -334,9 +351,9 @@ export function CockpitView({ scenario }: Props) {
               />
               {/* Spiral sheet spiral-wrap lines overlay */}
               <line
-                x1="220"
+                x1={bowX}
                 y1="275"
-                x2="330"
+                x2={mastX - 20}
                 y2="60"
                 stroke="#373a3c"
                 strokeWidth="1.2"
@@ -348,23 +365,23 @@ export function CockpitView({ scenario }: Props) {
           )}
 
           {/* 4. STATIONARY TAPERED 3D MAST (Rendered on top of sails for correct perspective depth!) */}
-          <polygon points="344,282 356,282 352,0 348,0" fill="url(#mastGradient)" stroke="#222526" strokeWidth="0.8" opacity="0.98" />
-          <line x1="350" y1="282" x2="350" y2="0" stroke="#fdfdfd" strokeWidth="0.8" opacity="0.65" /> {/* Highlight reflection */}
+          <polygon points={`${mastX - 6},282 ${mastX + 6},282 ${mastX + 2},0 ${mastX - 2},0`} fill="url(#mastGradient)" stroke="#222526" strokeWidth="0.8" opacity="0.98" />
+          <line x1={mastX} y1="282" x2={mastX} y2="0" stroke="#fdfdfd" strokeWidth="0.8" opacity="0.65" /> {/* Highlight reflection */}
 
-          {/* 5. DYNAMIC ROTATING TAPERED 3D BOOM (Pivoted at gooseneck 350,212) */}
+          {/* 5. DYNAMIC ROTATING TAPERED 3D BOOM (Pivoted at gooseneck mastX,212) */}
           <polygon
-            points={`350,209 350,215 ${clewX},${clewY + 6} ${clewX},${clewY - 6}`}
+            points={`${mastX},209 ${mastX},215 ${clewX},${clewY + 6} ${clewX},${clewY - 6}`}
             fill="#2c3031"
             stroke="#3e4244"
             strokeWidth="1.2"
             opacity="0.95"
           />
-          <line x1="350" y1="212" x2={clewX} y2={clewY} stroke="#eaeff2" strokeWidth="1.2" opacity="0.75" /> {/* Outhaul reflect */}
+          <line x1={mastX} y1="212" x2={clewX} y2={clewY} stroke="#eaeff2" strokeWidth="1.2" opacity="0.75" /> {/* Outhaul reflect */}
 
           {/* 6. DYNAMIC RIGGING RUNNING HARDWARE (Boom Vang & Mainsheet) */}
-          {/* Boom Vang (Mast Base 350,252 to Boom) */}
-          <line x1="350" y1="252" x2={vangX} y2={vangY} stroke="#171819" strokeWidth="3.2" strokeLinecap="round" />
-          <line x1="350" y1="252" x2={vangX} y2={vangY} stroke="#bfa67a" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
+          {/* Boom Vang (Mast Base mastX,252 to Boom) */}
+          <line x1={mastX} y1="252" x2={vangX} y2={vangY} stroke="#171819" strokeWidth="3.2" strokeLinecap="round" />
+          <line x1={mastX} y1="252" x2={vangX} y2={vangY} stroke="#bfa67a" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
           
           {/* Mainsheet connecting Clew traveler x to deck traveler block using brown-white pattern */}
           <path d={`M ${sheetBoomX},${sheetBoomY} L ${travellerX},275`} stroke="url(#mainsheetPattern)" strokeWidth="4.8" strokeLinecap="round" fill="none" />
@@ -372,7 +389,7 @@ export function CockpitView({ scenario }: Props) {
           
           {/* Deck Traveler Track block */}
           <rect x={travellerX - 10} y="272" width="20" height="6" rx="1.5" fill="#2d3032" stroke="#484d4f" strokeWidth="1" />
-          <text x="350" y="70" fill="#f4efe7" fontSize="10" fontWeight="900" letterSpacing="0.1em" opacity="0.85" textAnchor="middle">MAIN</text>
+          <text x={mastX} y="70" fill="#f4efe7" fontSize="10" fontWeight="900" letterSpacing="0.1em" opacity="0.85" textAnchor="middle">MAIN</text>
 
           {/* Back traveler slider */}
           <path d="M160,275 L540,275" stroke="rgba(18,50,57,0.72)" strokeWidth="2.5" strokeLinecap="round" />

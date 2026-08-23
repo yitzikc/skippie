@@ -144,3 +144,14 @@ export function calculateRiggingCoordinates(
     isJibBacked,
   };
 }
+
+/**
+ * Apparent Horizon Tilt Calculator
+ * Computes the visual tilt angle of the horizon relative to the cockpit frame.
+ * Scales with the cosine of the skipper's looking view angle relative to the bow centerline
+ * because looking along the beam (90 deg to side) aligns the view with the axis of heel rotation.
+ */
+export function calculateApparentTilt(heelDeg: number, viewAngle: number): number {
+  const rad = (viewAngle * Math.PI) / 180;
+  return -heelDeg * Math.cos(rad);
+}
