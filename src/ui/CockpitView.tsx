@@ -85,29 +85,57 @@ export function CockpitView({ scenario }: Props) {
   const activeGenoaTack = genoaVisible ? (genoaTack || tack) : null;
   const genoaSideOffset = activeGenoaTack === "port" ? -18 : 18;
   const activeTelltaleColor = activeGenoaTack === "starboard" ? "#1d7a45" : "#b33d2b";
-  const mainSailPath =
-    scenario.boat.mainsail === "down"
-      ? "M360,172 L360,268 L220,285 L270,176 Z"
-      : scenario.boat.mainsail === "preparing"
-        ? "M360,158 L360,278 L225,288 L276,165 Z"
-        : scenario.boat.mainsail === "hoisting"
-          ? "M360,118 L360,280 L220,292 L270,138 Z"
-          : scenario.boat.mainsail === "lowering"
-            ? "M360,148 L360,278 L228,290 L276,154 Z"
-            : "M360,90 L360,282 L220,295 L272,104 Z";
-  const jibSailPath =
-    scenario.boat.mainsail === "down"
-      ? "M225,185 L122,228 L170,96 Z"
-      : scenario.boat.mainsail === "preparing"
-        ? "M228,188 L136,228 L174,108 Z"
-        : scenario.boat.mainsail === "hoisting"
-          ? "M232,184 L145,225 L182,82 Z"
-          : scenario.boat.mainsail === "lowering"
-            ? "M226,186 L132,228 L165,104 Z"
-            : "M232,180 L150,226 L184,76 Z";
   const jibTelltaleOpacity = Math.max(0.2, 0.65 + relativeWind / 180);
   const travellerOffset = clamp(Math.round(relativeWind * 0.28 + scenario.boat.rudderAngleDeg * 0.18), -30, 30);
   const apparentWindPointer = ((relativeWind + 180) / 360) * 100;
+
+  // High-fidelity dynamic sail rigging projections
+  const sailProgress =
+    scenario.boat.mainsail === "raised" ? 1.0 :
+    scenario.boat.mainsail === "hoisting" ? 0.6 :
+    scenario.boat.mainsail === "lowering" ? 0.4 :
+    scenario.boat.mainsail === "preparing" ? 0.15 :
+    0.0;
+
+  const headY = 212 - sailProgress * 142; // masthead height compression
+  const clewX = 350 + boomOffset * 3.6;   // swing radius centered at deck center 350
+  const clewY = 212 + 8 + Math.abs(boomOffset) * 0.14; // swing dip perspective
+
+  const vangX = 350 + (clewX - 350) * 0.45;
+  const vangY = 212 + (clewY - 212) * 0.45 + 2;
+
+  const sheetBoomX = 350 + (clewX - 350) * 0.82;
+  const sheetBoomY = 212 + (clewY - 212) * 0.82 + 2;
+
+  const travellerX = 350 + travellerOffset * 0.65;
+
+  // Detect if Genoa is Backed (windward sheeted) -> Heave-To geometry!
+  const isJibBacked = genoaVisible && (
+    (apparentWindAngle < 0 && genoaTack === "port") ||
+    (apparentWindAngle > 0 && genoaTack === "starboard")
+  );
+
+  let finalJibClewX = 220 + (350 - 220) * 0.38 + jibOffset * 3.0;
+  let finalJibClewY = 275 - (275 - 20) * 0.3 + Math.abs(jibOffset) * 0.08;
+  if (isJibBacked) {
+    // Backed: pull clew to the windward side and pin it flat against stays
+    const windwardOffset = apparentWindAngle < 0 ? -12 : 12;
+    finalJibClewX = 220 + (350 - 220) * 0.35 + windwardOffset * 2.2;
+    finalJibClewY = 275 - (275 - 20) * 0.31;
+  }
+
+  // Tacking/Gybing and Irons luffing indicators
+  const isMainLuffing = scenario.boat.mainsail !== "down" && (
+    Math.abs(apparentWindAngle) < 22 ||
+    scenario.boat.mainsail === "hoisting" ||
+    scenario.boat.mainsail === "lowering"
+  );
+
+  const isJibLuffing = genoaVisible && (
+    Math.abs(apparentWindAngle) < 22 ||
+    Math.abs(jibOffset) < 10
+  );
+
   const enginePosition = (() => {
     switch (scenario.boat.engine) {
       case "astern":
@@ -157,129 +185,162 @@ export function CockpitView({ scenario }: Props) {
               <stop offset="0%" stopColor="#f5f6f0" />
               <stop offset="100%" stopColor="#dfe4dd" />
             </linearGradient>
+            <linearGradient id="mastGradient" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor="#4e5356" />
+              <stop offset="35%" stopColor="#8c9296" />
+              <stop offset="50%" stopColor="#aab0b4" />
+              <stop offset="65%" stopColor="#8c9296" />
+              <stop offset="100%" stopColor="#3c4042" />
+            </linearGradient>
+            {/* Mainsheet brown & white diagonal repeating stripe rope pattern */}
+            <pattern id="mainsheetPattern" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
+              <rect width="6" height="12" fill="#7a5a3b" />
+              <rect x="6" width="6" height="12" fill="#f1efe7" />
+            </pattern>
           </defs>
 
+          {/* Sea water horizontal backdrop */}
           <path d="M0,240 Q270,180 700,250 L700,420 L0,420 Z" fill="rgba(71,128,138,0.84)" />
           <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
 
-          <g transform={`translate(${260 + boomOffset * 0.9} 0)`}>
-            <path d="M348,142 L432,82 L448,100 L360,175 Z" fill="#c7d4d2" opacity="0.8" />
-            <path d="M360,146 L430,105" stroke="#4f686d" strokeWidth="3" strokeLinecap="round" />
-            <path d="M360,148 L300,148" stroke="#4f686d" strokeWidth="4" strokeLinecap="round" />
-            <path d="M360,92 L360,282" stroke="#374d57" strokeWidth="8" strokeLinecap="round" opacity="0.9" />
-            <path d="M360,92 L360,282" stroke="#dbd1bc" strokeWidth="3" strokeLinecap="round" opacity="0.75" />
-            <path d="M360,92 L390,82 L400,94 L360,108 Z" fill="#d9d4cd" opacity="0.9" />
-            <path d="M360,95 L334,58 L332,52 L360,70 Z" fill="#dfe5e2" opacity="0.9" />
-            <path d="M360,92 L310,62" stroke="#ccc5b7" strokeWidth="2.4" strokeLinecap="round" fill="none" opacity="0.8" />
-            <path d="M360,92 L420,56" stroke="#b7b2a6" strokeWidth="2.1" strokeLinecap="round" fill="none" opacity="0.8" />
-            <path d="M232,182 L155,210" stroke="#dfeae8" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.8" />
-            <path d="M232,94 L154,210" stroke="#dfeae8" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.8" />
-            <path d="M360,92 L382,26" stroke="#dfeae8" strokeWidth="2.1" strokeLinecap="round" fill="none" opacity="0.8" />
-            <path
-              d={`M360 ${170 + mainSheetAngle * 0.5} Q430 ${164 + mainSheetAngle * 0.4} 505 ${150 + mainSheetAngle * 0.2}`}
-              stroke="#f6f4ef"
-              strokeWidth="5.5"
-              strokeLinecap="round"
-              fill="none"
-              opacity="1"
-            />
-            <path
-              d={`M360 ${170 + mainSheetAngle * 0.5} Q430 ${164 + mainSheetAngle * 0.4} 505 ${150 + mainSheetAngle * 0.2}`}
-              stroke="#7b4f46"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.95"
-            />
-            <path
-              d={`M468 ${150 + mainSheetAngle * 0.5} Q435 ${185 + mainSheetAngle * 0.3} 360 ${182 + mainSheetAngle * 0.7}`}
-              stroke="#f4efe7"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.8"
-            />
-            <path
-              d={`M470 ${150 + mainSheetAngle * 0.5} Q365 ${198 + mainSheetAngle * 0.5} 292 ${216 + mainSheetAngle * 0.7}`}
-              stroke="#9a5547"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.9"
-            />
-            <path
-              d={`M355 ${172 + travellerOffset * 0.4} Q420 ${164 + travellerOffset * 0.2} 500 ${164 + travellerOffset * 0.1}`}
-              stroke="#d3b26d"
-              strokeWidth="3.6"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.95"
-            />
-            <path
-              d={`M361 ${172 + travellerOffset * 0.4} Q420 ${170 + travellerOffset * 0.2} 500 ${170 + travellerOffset * 0.1}`}
-              stroke="#7c5c2b"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              fill="none"
-              opacity="0.9"
-            />
-            <rect x="415" y="140" width="38" height="20" rx="5" fill="#e9e2d5" opacity="0.8" stroke="#4a5b60" strokeWidth="1.5" />
-            <path d="M415,150 L453,150" stroke="#3b4d53" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="433" cy="150" r="4" fill="#d3b26d" stroke="#4a5b60" strokeWidth="1.2" />
-            <text x="505" y="150" fill="#f6f4ef" fontSize="12" fontWeight="700" letterSpacing="1">SHEET</text>
-            <text x="500" y="184" fill="#d3b26d" fontSize="11" fontWeight="700" letterSpacing="1">VANG</text>
+          {/* 1. STATIONARY STANDING RIGGING LAYER (Shrouds & Forestay) */}
+          <path d="M 160,282 L 310,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
+          <path d="M 540,282 L 390,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
+          {/* Spreader Bars */}
+          <line x1="350" y1="88" x2="310" y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
+          <line x1="350" y1="87" x2="310" y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+          <line x1="350" y1="88" x2="390" y2="88" stroke="#2c3031" strokeWidth="2.8" strokeLinecap="round" />
+          <line x1="350" y1="87" x2="390" y2="87" stroke="#9bb1b5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+          {/* Forestay */}
+          <line x1="220" y1="275" x2="350" y2="16" stroke="#474d4f" strokeWidth="1.8" opacity="0.9" />
 
-            <g>
+          {/* 2. DYNAMIC MAINSAIL LAYER (Swings and flutters dynamically) */}
+          {sailProgress > 0.05 ? (
+            <g className={isMainLuffing ? "luffing-flutter" : ""}>
+              {/* Triangular Billowed Mainsail */}
               <path
-                d={mainSailPath}
+                d={`M 350,212 L 350,${headY} Q ${(350 + clewX) / 2 + 36} ${(headY + clewY) / 2 - 12} ${clewX},${clewY} Z`}
                 fill="url(#mainGradient)"
-                opacity={scenario.boat.mainsail === "down" ? 0.18 : 0.95}
-                transform={`translate(${boomOffset * 0.28} ${-sailLift} ) rotate(${sailTwist} 360 180)`}
+                stroke="#7b4f46"
+                strokeWidth="1"
+                opacity="0.96"
               />
-              <path d="M360,90 L360,282" stroke="#4c5d64" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M220,285 L272,176" stroke="#4c5d64" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M360,208 L314,256" stroke="#5a6770" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
+              {/* Full batten structural pocket lines */}
+              {[0.25, 0.5, 0.75].map((ratio) => {
+                const yLuff = headY + (212 - headY) * ratio;
+                const yLeech = headY + (clewY - headY) * ratio;
+                const xLeech = 350 + (clewX - 350) * ratio + 36 * (1 - Math.pow(2 * ratio - 1, 2));
+                return (
+                  <path
+                    key={ratio}
+                    d={`M 350,${yLuff} Q ${(350 + xLeech) / 2 + 10} ${(yLuff + yLeech) / 2 - 2} ${xLeech},${yLeech}`}
+                    stroke="#4a5255"
+                    strokeWidth="1.5"
+                    fill="none"
+                    opacity="0.65"
+                  />
+                );
+              })}
             </g>
-          </g>
+          ) : (
+            /* Folded Mainsail Cover on top of the boom when lowered */
+            <path
+              d={`M 350,212 L ${clewX},${clewY} L ${clewX},${clewY - 4} Q ${(350 + clewX) / 2},${(212 + clewY) / 2 - 6} 350,208 Z`}
+              fill="#81898d"
+              stroke="#5c6265"
+              strokeWidth="0.8"
+              opacity="0.88"
+            />
+          )}
 
-          <g transform={`translate(${jibOffset * 1.1 + genoaSideOffset} 0)`}>
-            <g>
-              <path d="M232,184 L232,94" stroke="#dfeae8" strokeWidth="5" strokeLinecap="round" opacity={genoaVisible ? 0.9 : 0} />
-              <path d="M232,184 L184,76" stroke="#dfeae8" strokeWidth="4" strokeLinecap="round" opacity={genoaVisible ? 0.75 : 0} />
-              <path d="M232,92 L206,44" stroke="#dfeae8" strokeWidth="2.2" strokeLinecap="round" opacity={genoaVisible ? 0.8 : 0} />
+          {/* 3. DYNAMIC GENOA (JIB) LAYER (Responsive to back-sheeting, backed heave-to, and furling) */}
+          {genoaVisible ? (
+            <g className={isJibLuffing ? "genoa-flutter" : ""}>
+              {/* Backed Windward vs standard Genoa shape */}
               <path
-                d={jibSailPath}
+                d={`M 220,275 L 330,60 Q ${(330 + finalJibClewX) / 2 + (isJibBacked ? -12 : 25)} ${(60 + finalJibClewY) / 2} ${finalJibClewX},${finalJibClewY} Q ${(220 + finalJibClewX) / 2} ${(275 + finalJibClewY) / 2 + (isJibBacked ? -6 : 8)} 220,275 Z`}
                 fill="url(#jibGradient)"
-                opacity={genoaVisible ? 0.98 : 0}
-                transform={`rotate(${jibTrim * 0.7} 180 150)`}
+                stroke="#4c5d64"
+                strokeWidth="1"
+                opacity="0.97"
               />
-              <path d="M232,184 L165,226" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" opacity={genoaVisible ? 1 : 0} />
-              <path d="M232,184 L184,76" stroke="#4c5d64" strokeWidth="2.4" strokeLinecap="round" opacity={genoaVisible ? 1 : 0} />
-              <g className="jib-telltales" opacity={genoaVisible ? 0.95 : 0}>
-                <path d="M178,112 L195,144" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                <path d="M186,120 L205,144" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                <path d="M192,128 L212,140" stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+              {/* Telltales fluttering on Genoa leech */}
+              <g className="jib-telltales" opacity={isJibLuffing ? 0.35 : jibTelltaleOpacity}>
+                <path d={`${finalJibClewX - 22},${finalJibClewY - 40} L ${finalJibClewX - 6},${finalJibClewY - 24}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                <path d={`${finalJibClewX - 14},${finalJibClewY - 32} L ${finalJibClewX + 2},${finalJibClewY - 18}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
               </g>
-              <text x="145" y="112" fill="#f4efe7" fontSize="11" fontWeight="700" letterSpacing="1" opacity={genoaVisible ? 1 : 0}>GENOA</text>
+              {/* Clew Genoa sheet rope to Winch */}
+              <line
+                x1={finalJibClewX}
+                y1={finalJibClewY}
+                x2={isJibBacked ? "240" : "180"}
+                y2="275"
+                stroke={isJibBacked ? "#9a5547" : "#3b4d53"}
+                strokeWidth="2.2"
+                opacity="0.9"
+              />
+              {/* Display status text backing tag */}
+              <text x={finalJibClewX - 28} y={finalJibClewY - 10} fill="#f4efe7" fontSize="10" fontWeight="900" letterSpacing="0.05em" opacity="0.9">
+                {isJibBacked ? "BACKED" : "GENOA"}
+              </text>
             </g>
-          </g>
+          ) : (
+            /* Rolled/Furled Jib represented as a thick cylindrical roll with spiral wraps, using same genoa color #jibGradient */
+            <g>
+              <line
+                x1="220"
+                y1="275"
+                x2="330"
+                y2="60"
+                stroke="url(#jibGradient)"
+                strokeWidth="6.5"
+                strokeLinecap="round"
+                opacity="0.95"
+              />
+              {/* Spiral sheet spiral-wrap lines overlay */}
+              <line
+                x1="220"
+                y1="275"
+                x2="330"
+                y2="60"
+                stroke="#373a3c"
+                strokeWidth="1.2"
+                strokeDasharray="4 8"
+                strokeLinecap="round"
+                opacity="0.65"
+              />
+            </g>
+          )}
 
-          <g transform={`translate(0 ${scenario.boat.mainsail === "raised" ? 8 : 28})`}>
-            <path d="M160,212 L470,212" stroke="rgba(242,240,233,0.6)" strokeWidth="7" strokeLinecap="round" />
-            <path d="M160,212 L490,212" stroke="rgba(18,50,57,0.78)" strokeWidth="2.6" strokeLinecap="round" />
-            <path d="M230,212 L230,228 L305,228 L305,212" fill="none" stroke="rgba(18,50,57,0.75)" strokeWidth="2.2" />
-            <path d="M322,212 L322,226 L415,226 L415,212" fill="none" stroke="rgba(18,50,57,0.75)" strokeWidth="2.2" />
-            <path d="M180,206 L180,218" stroke="#d6e7e7" strokeWidth="2.2" strokeLinecap="round" opacity="0.7" />
-            <path d="M468,206 L468,218" stroke="#d6e7e7" strokeWidth="2.2" strokeLinecap="round" opacity="0.7" />
-          </g>
-          <text x="388" y="86" fill="#f4efe7" fontSize="11" fontWeight="800" letterSpacing="1">MAIN</text>
+          {/* 4. STATIONARY TAPERED 3D MAST (Rendered on top of sails for correct perspective depth!) */}
+          <polygon points="344,282 356,282 352,0 348,0" fill="url(#mastGradient)" stroke="#222526" strokeWidth="0.8" opacity="0.98" />
+          <line x1="350" y1="282" x2="350" y2="0" stroke="#fdfdfd" strokeWidth="0.8" opacity="0.65" /> {/* Highlight reflection */}
 
-          <g transform={`translate(0 ${scenario.boat.mainsail === "raised" ? 8 : 28})`}>
-            <path d="M160,212 L470,212" stroke="rgba(242,240,233,0.6)" strokeWidth="7" strokeLinecap="round" />
-            <path d="M160,212 L490,212" stroke="rgba(18,50,57,0.78)" strokeWidth="2.6" strokeLinecap="round" />
-            <path d="M230,212 L230,228 L305,228 L305,212" fill="none" stroke="rgba(18,50,57,0.75)" strokeWidth="2.2" />
-            <path d="M322,212 L322,226 L415,226 L415,212" fill="none" stroke="rgba(18,50,57,0.75)" strokeWidth="2.2" />
-          </g>
+          {/* 5. DYNAMIC ROTATING TAPERED 3D BOOM (Pivoted at gooseneck 350,212) */}
+          <polygon
+            points={`350,209 350,215 ${clewX},${clewY + 6} ${clewX},${clewY - 6}`}
+            fill="#2c3031"
+            stroke="#3e4244"
+            strokeWidth="1.2"
+            opacity="0.95"
+          />
+          <line x1="350" y1="212" x2={clewX} y2={clewY} stroke="#eaeff2" strokeWidth="1.2" opacity="0.75" /> {/* Outhaul reflect */}
+
+          {/* 6. DYNAMIC RIGGING RUNNING HARDWARE (Boom Vang & Mainsheet) */}
+          {/* Boom Vang (Mast Base 350,252 to Boom) */}
+          <line x1="350" y1="252" x2={vangX} y2={vangY} stroke="#171819" strokeWidth="3.2" strokeLinecap="round" />
+          <line x1="350" y1="252" x2={vangX} y2={vangY} stroke="#bfa67a" strokeWidth="1.2" strokeLinecap="round" opacity="0.9" />
+          
+          {/* Mainsheet connecting Clew traveler x to deck traveler block using brown-white pattern */}
+          <path d={`M ${sheetBoomX},${sheetBoomY} L ${travellerX},275`} stroke="url(#mainsheetPattern)" strokeWidth="4.8" strokeLinecap="round" fill="none" />
+          <path d={`M ${sheetBoomX},${sheetBoomY} L ${travellerX},275`} stroke="rgba(18,22,23,0.22)" strokeWidth="4.8" strokeLinecap="round" fill="none" strokeDasharray="1.5 7" />
+          
+          {/* Deck Traveler Track block */}
+          <rect x={travellerX - 10} y="272" width="20" height="6" rx="1.5" fill="#2d3032" stroke="#484d4f" strokeWidth="1" />
+          <text x="350" y="70" fill="#f4efe7" fontSize="10" fontWeight="900" letterSpacing="0.1em" opacity="0.85" textAnchor="middle">MAIN</text>
+
+          {/* Back traveler slider */}
+          <path d="M160,275 L540,275" stroke="rgba(18,50,57,0.72)" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
       </div>
 
