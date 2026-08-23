@@ -1,62 +1,24 @@
 import React from "react";
 import type { MarineEntity, BoatState } from "../sim/types";
+import { projectEntity } from "../sim/projection";
 
 interface MarineEntitiesProps {
   entities: MarineEntity[];
   boat: BoatState;
-}
-
-/**
- * Normalizes any degree angle to the range [-180, 180]
- */
-function normalizeDegrees(value: number): number {
-  let normalized = value % 360;
-  if (normalized > 180) normalized -= 360;
-  if (normalized < -180) normalized += 360;
-  return normalized;
+  viewHeading: number; // The skipper's absolute looking heading direction
 }
 
 /**
  * Component that projects and renders 2.5D visual representations of IALA Region A buoys
  * and moving background vessels within the cockpit's visual Field of View (FOV).
  */
-export function MarineEntities({ entities, boat }: MarineEntitiesProps) {
+export function MarineEntities({ entities, boat, viewHeading }: MarineEntitiesProps) {
   // Trigonometric camera projection mapping world coordinates (x, y) to viewport coordinates (X, Y)
   const projectedEntities = entities
     .map((ent) => {
-      const bx = boat.x;
-      const by = boat.y;
-      const heading = boat.headingDeg;
-
-      // Cartesian coordinates relative to boat (x points East, y points North)
-      const dx = ent.x - bx;
-      const dy = ent.y - by;
-
-      // Distance in meters
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 4 || dist > 260) return null; // clip visible range
-
-      // Absolute bearing from boat to entity (clockwise from North 0)
-      let bearingAbs = Math.atan2(dx, dy) * (180 / Math.PI);
-      if (bearingAbs < 0) bearingAbs += 360;
-
-      // Relative angle relative to the bow centerline
-      const bearingRel = normalizeDegrees(bearingAbs - heading);
-
-      // Clip objects outside visual Field of View (+/- 32 degrees FOV bounds)
-      if (Math.abs(bearingRel) > 32) return null;
-
-      // Map to viewport screen coordinates (viewBox 0 0 700 420)
-      // Horizontal center is 350
-      const screenX = 350 + (bearingRel / 32) * 310;
-
-      // Exponential depth perspective: maps distance smoothly from horizon y=200 to deck rail y=280
-      const screenY = 200 + (1 - Math.exp(-22 / dist)) * 80;
-
-      // Proportional size scaling: closer is larger
-      const scale = Math.max(0.15, Math.min(3.5, 45 / dist));
-
-      return { ent, screenX, screenY, scale };
+      const proj = projectEntity(ent.x, ent.y, boat.x, boat.y, viewHeading);
+      if (!proj.visible) return null;
+      return { ent, screenX: proj.screenX, screenY: proj.screenY, scale: proj.scale };
     })
     .filter((p): p is NonNullable<typeof p> => p !== null);
 

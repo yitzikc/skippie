@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import type { ScenarioState } from "../sim/types";
 import { TridataInstrument, WindInstrument } from "./RaymarineInstruments";
 import { MarineEntities } from "./MarineEntities";
+import { BackgroundScenery } from "./BackgroundScenery";
+import { calculateRiggingCoordinates } from "../sim/projection";
 
 type Props = {
   scenario: ScenarioState;
@@ -55,6 +57,7 @@ export function CockpitView({ scenario }: Props) {
   const [genoaFurled, setGenoaFurled] = useState<boolean>(scenario.boat.genoaFurled ?? true);
   const [genoaTack, setGenoaTack] = useState<"port" | "starboard">(scenario.boat.genoaTack ?? "starboard");
   const [backlightLevel, setBacklightLevel] = useState<number>(0);
+  const [viewAngle, setViewAngle] = useState<number>(0);
 
   useEffect(() => {
     setGenoaFurled(scenario.boat.genoaFurled ?? true);
@@ -71,6 +74,9 @@ export function CockpitView({ scenario }: Props) {
   const windDir = Math.round(scenario.environment.windDirectionDeg);
   const windSpeed = scenario.environment.windStrengthKnots;
   const engineValue = engineMap[scenario.boat.engine] ?? "IDLE";
+
+  // Calculate absolute viewing vector: boat heading + look offset
+  const viewHeading = heading + viewAngle;
 
   // Drive cockpit wind instruments using high-fidelity VPP apparent wind outputs if available
   const apparentWindAngle = scenario.boat.apparentWindAngleDeg !== undefined
@@ -102,7 +108,7 @@ export function CockpitView({ scenario }: Props) {
   const travellerOffset = clamp(Math.round(relativeWind * 0.28 + scenario.boat.rudderAngleDeg * 0.18), -30, 30);
   const apparentWindPointer = ((relativeWind + 180) / 360) * 100;
 
-  // High-fidelity dynamic sail rigging projections
+  // High-fidelity dynamic sail rigging projections using formally defined calculator
   const sailProgress =
     scenario.boat.mainsail === "raised" ? 1.0 :
     scenario.boat.mainsail === "hoisting" ? 0.6 :
@@ -111,31 +117,31 @@ export function CockpitView({ scenario }: Props) {
     0.0;
 
   const headY = 212 - sailProgress * 142; // masthead height compression
-  const clewX = 350 + boomOffset * 3.6;   // swing radius centered at deck center 350
-  const clewY = 212 + 8 + Math.abs(boomOffset) * 0.14; // swing dip perspective
-
-  const vangX = 350 + (clewX - 350) * 0.45;
-  const vangY = 212 + (clewY - 212) * 0.45 + 2;
-
-  const sheetBoomX = 350 + (clewX - 350) * 0.82;
-  const sheetBoomY = 212 + (clewY - 212) * 0.82 + 2;
-
-  const travellerX = 350 + travellerOffset * 0.65;
-
-  // Detect if Genoa is Backed (windward sheeted) -> Heave-To geometry!
-  const isJibBacked = genoaVisible && (
-    (apparentWindAngle < 0 && genoaTack === "port") ||
-    (apparentWindAngle > 0 && genoaTack === "starboard")
+  
+  const rig = calculateRiggingCoordinates(
+    viewAngle,
+    boomOffset,
+    jibOffset,
+    travellerOffset,
+    apparentWindAngle,
+    genoaTack,
+    genoaVisible
   );
 
-  let finalJibClewX = 220 + (350 - 220) * 0.38 + jibOffset * 3.0;
-  let finalJibClewY = 275 - (275 - 20) * 0.3 + Math.abs(jibOffset) * 0.08;
-  if (isJibBacked) {
-    // Backed: pull clew to the windward side and pin it flat against stays
-    const windwardOffset = apparentWindAngle < 0 ? -12 : 12;
-    finalJibClewX = 220 + (350 - 220) * 0.35 + windwardOffset * 2.2;
-    finalJibClewY = 275 - (275 - 20) * 0.31;
-  }
+  const {
+    mastX,
+    bowX,
+    clewX,
+    clewY,
+    vangX,
+    vangY,
+    sheetBoomX,
+    sheetBoomY,
+    travellerX,
+    jibClewX: finalJibClewX,
+    jibClewY: finalJibClewY,
+    isJibBacked
+  } = rig;
 
   // Tacking/Gybing and Irons luffing indicators
   const isMainLuffing = scenario.boat.mainsail !== "down" && (
@@ -181,13 +187,6 @@ export function CockpitView({ scenario }: Props) {
           <div className="scene-horizon" />
           <div className="scene-water" />
 
-          <div className="helm-indicator" data-state={helmState}>
-            <span className="helm-label">Helm</span>
-            <div className="helm-track">
-              <span className="helm-marker" />
-            </div>
-          </div>
-
           <svg className="sail-svg" viewBox="0 0 700 420" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="mainGradient" x1="0" x2="1">
@@ -210,14 +209,23 @@ export function CockpitView({ scenario }: Props) {
               <rect width="6" height="12" fill="#7a5a3b" />
               <rect x="6" width="6" height="12" fill="#f1efe7" />
             </pattern>
+            {/* Spherical Compass Dome radial gradient */}
+            <radialGradient id="compassDome" cx="50%" cy="30%" r="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
+              <stop offset="85%" stopColor="#0a0b0d" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0.95" />
+            </radialGradient>
           </defs>
+
+          {/* Gyroscopic 2.5D Background Scenery (Clouds & Land Contours) */}
+          <BackgroundScenery heading={viewHeading} />
 
           {/* Sea water horizontal backdrop */}
           <path d="M0,240 Q270,180 700,250 L700,420 L0,420 Z" fill="rgba(71,128,138,0.84)" />
           <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
 
           {/* Projected Marine Navigation Entities (IALA Region A Buoys & Background Vessels) */}
-          <MarineEntities entities={scenario.entities || []} boat={scenario.boat} />
+          <MarineEntities entities={scenario.entities || []} boat={scenario.boat} viewHeading={viewHeading} />
 
           {/* 1. STATIONARY STANDING RIGGING LAYER (Shrouds & Forestay) */}
           <path d="M 160,282 L 310,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
@@ -235,7 +243,7 @@ export function CockpitView({ scenario }: Props) {
             <g className={isMainLuffing ? "luffing-flutter" : ""}>
               {/* Triangular Billowed Mainsail */}
               <path
-                d={`M 350,212 L 350,${headY} Q ${(350 + clewX) / 2 + 36} ${(headY + clewY) / 2 - 12} ${clewX},${clewY} Z`}
+                d={`M ${mastX},212 L ${mastX},${headY} Q ${(mastX + clewX) / 2 + 36} ${(headY + clewY) / 2 - 12} ${clewX},${clewY} Z`}
                 fill="url(#mainGradient)"
                 stroke="#7b4f46"
                 strokeWidth="1"
@@ -245,11 +253,11 @@ export function CockpitView({ scenario }: Props) {
               {[0.25, 0.5, 0.75].map((ratio) => {
                 const yLuff = headY + (212 - headY) * ratio;
                 const yLeech = headY + (clewY - headY) * ratio;
-                const xLeech = 350 + (clewX - 350) * ratio + 36 * (1 - Math.pow(2 * ratio - 1, 2));
+                const xLeech = mastX + (clewX - mastX) * ratio + 36 * (1 - Math.pow(2 * ratio - 1, 2));
                 return (
                   <path
                     key={ratio}
-                    d={`M 350,${yLuff} Q ${(350 + xLeech) / 2 + 10} ${(yLuff + yLeech) / 2 - 2} ${xLeech},${yLeech}`}
+                    d={`M ${mastX},${yLuff} Q ${(mastX + xLeech) / 2 + 10} ${(yLuff + yLeech) / 2 - 2} ${xLeech},${yLeech}`}
                     stroke="#4a5255"
                     strokeWidth="1.5"
                     fill="none"
@@ -261,7 +269,7 @@ export function CockpitView({ scenario }: Props) {
           ) : (
             /* Folded Mainsail Cover on top of the boom when lowered */
             <path
-              d={`M 350,212 L ${clewX},${clewY} L ${clewX},${clewY - 4} Q ${(350 + clewX) / 2},${(212 + clewY) / 2 - 6} 350,208 Z`}
+              d={`M ${mastX},212 L ${clewX},${clewY} L ${clewX},${clewY - 4} Q ${(mastX + clewX) / 2},${(212 + clewY) / 2 - 6} ${mastX},208 Z`}
               fill="#81898d"
               stroke="#5c6265"
               strokeWidth="0.8"
@@ -274,7 +282,7 @@ export function CockpitView({ scenario }: Props) {
             <g className={isJibLuffing ? "genoa-flutter" : ""}>
               {/* Backed Windward vs standard Genoa shape */}
               <path
-                d={`M 220,275 L 330,60 Q ${(330 + finalJibClewX) / 2 + (isJibBacked ? -12 : 25)} ${(60 + finalJibClewY) / 2} ${finalJibClewX},${finalJibClewY} Q ${(220 + finalJibClewX) / 2} ${(275 + finalJibClewY) / 2 + (isJibBacked ? -6 : 8)} 220,275 Z`}
+                d={`M ${bowX},275 L ${mastX - 20},60 Q ${(mastX - 20 + finalJibClewX) / 2 + (isJibBacked ? -12 : 25)} ${(60 + finalJibClewY) / 2} ${finalJibClewX},${finalJibClewY} Q ${(bowX + finalJibClewX) / 2} ${(275 + finalJibClewY) / 2 + (isJibBacked ? -6 : 8)} ${bowX},275 Z`}
                 fill="url(#jibGradient)"
                 stroke="#4c5d64"
                 strokeWidth="1"
@@ -357,7 +365,112 @@ export function CockpitView({ scenario }: Props) {
 
           {/* Back traveler slider */}
           <path d="M160,275 L540,275" stroke="rgba(18,50,57,0.72)" strokeWidth="2.5" strokeLinecap="round" />
+
+          {/* 7. HIGH-FIDELITY PEDESTAL HELM CONSOLE (Wheel, Duct Tape Neutral Marker, and Dome Compass) */}
+          {/* A. Steering Pedestal Columns Base centered at mastX */}
+          <path d={`M ${mastX - 38},420 L ${mastX - 18},328 L ${mastX + 18},328 L ${mastX + 38},420 Z`} fill="#2d3032" stroke="#1c1d1e" strokeWidth="1.5" />
+          <rect x={mastX - 22} y="328" width="44" height="42" rx="3" fill="#1d2021" stroke="#3b3f41" strokeWidth="1.2" /> {/* Binnacle Housing */}
+          
+          {/* B. Dynamic Yacht Steering Wheel (Pedestal Helm) rotated around (mastX, 360) */}
+          {/* Rotates 15x relative to the physical rudderAngleDeg! */}
+          <g transform={`rotate(${scenario.boat.rudderAngleDeg * 15} ${mastX} 360)`} className="helm-steering-wheel">
+            {/* Stainless Steel Wheel Rim */}
+            <circle cx={mastX} cy="360" r="62" fill="none" stroke="#686e70" strokeWidth="3" />
+            <circle cx={mastX} cy="360" r="62" fill="none" stroke="#eaeff2" strokeWidth="1" />
+            
+            {/* 6 Wheel Spokes */}
+            {[0, 60, 120, 180, 240, 300].map((angle) => {
+              const rad = (angle * Math.PI) / 180;
+              return (
+                <line
+                  key={angle}
+                  x1={mastX}
+                  y1="360"
+                  x2={mastX + 62 * Math.cos(rad)}
+                  y2={360 + 62 * Math.sin(rad)}
+                  stroke="#eaeff2"
+                  strokeWidth="1.8"
+                />
+              );
+            })}
+            
+            {/* Red Duct Tape Neutral Helm Marker wrapping the top center of the rim when centered! */}
+            <rect x={mastX - 4.5} y="292" width="9" height="12" fill="#cf3b3b" rx="1.2" stroke="#7e1f1f" strokeWidth="0.5" />
+            <line x1={mastX - 4.5} y1="298" x2={mastX + 4.5} y2="298" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+          </g>
+
+          {/* C. Wheel Hubcap Pivot covering center */}
+          <circle cx={mastX} cy="360" r="10" fill="#222526" stroke="#484d4f" strokeWidth="1.2" />
+          <circle cx={mastX} cy="360" r="4.5" fill="#eaeff2" />
+
+          {/* D. Dome Binnacle Glass Compass (Plastimo/Ritchie Yacht style) centered at mastX */}
+          <g className="binnacle-steering-compass">
+            {/* Compass bowl backer */}
+            <circle cx={mastX} cy="320" r="22" fill="#151718" stroke="#3e4244" strokeWidth="1.5" />
+            
+            {/* Rotating Spherical Compass Card (rotates in opposite direction of heading around binnacle center!) */}
+            <g transform={`rotate(${-scenario.boat.headingDeg} ${mastX} 320)`}>
+              <circle cx={mastX} cy="320" r="17" fill="#1a1c1d" stroke="#2c2f30" strokeWidth="1" />
+              
+              {/* Cardinal directions */}
+              <text x={mastX} y="311.5" fill="#fdfdfd" fontSize="7" fontWeight="900" textAnchor="middle">N</text>
+              <text x={mastX + 12} y="322" fill="#cccccc" fontSize="5.5" fontWeight="900" textAnchor="middle">E</text>
+              <text x={mastX} y="332.5" fill="#cccccc" fontSize="5.5" fontWeight="900" textAnchor="middle">S</text>
+              <text x={mastX - 12} y="322" fill="#cccccc" fontSize="5.5" fontWeight="900" textAnchor="middle">W</text>
+              
+              {/* Spherical Compass degree tick-marks */}
+              {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
+                <line
+                  key={deg}
+                  x1={mastX}
+                  y1="304.5"
+                  x2={mastX}
+                  y2="307.5"
+                  stroke="#7a8184"
+                  strokeWidth="0.8"
+                  transform={`rotate(${deg} ${mastX} 320)`}
+                />
+              ))}
+            </g>
+
+            {/* Ritchie-style spherical glass dome highlight overlay */}
+            <circle cx={mastX} cy="320" r="17" fill="url(#compassDome)" opacity="0.88" />
+            
+            {/* Vertical Red Lubber Line (centered at top, locked forward in skipper view) */}
+            <line x1={mastX} y1="303" x2={mastX} y2="310.5" stroke="#d33f3f" strokeWidth="1.8" strokeLinecap="round" />
+          </g>
         </svg>
+      </div> {/* Closes cockpit-scene */}
+
+      {/* E. Interactive Skipper Look-Around Controller with Keyboard Accessibility */}
+      <div 
+        className="look-around-slider-container"
+        tabIndex={0}
+        title="Click or Tab here to use Left/Right Arrow keys to look around the yacht!"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            setViewAngle((v) => Math.max(-120, v - 10)); // Look 10 deg port
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            setViewAngle((v) => Math.min(120, v + 10));  // Look 10 deg starboard
+          }
+        }}
+      >
+        <span className="look-label">LOOK ANGLE</span>
+        <input
+          type="range"
+          min="-120"
+          max="120"
+          step="5"
+          value={viewAngle}
+          onChange={(e) => setViewAngle(Number(e.target.value))}
+          className="look-slider"
+          aria-label="Skipper Look Angle view controller"
+        />
+        <div className="look-readout">
+          {viewAngle === 0 ? "FORWARD 0°" : `${Math.abs(viewAngle)}° ${viewAngle > 0 ? "STBD" : "PORT"}`}
+        </div>
       </div>
 
       <div className="spinlock-bank" aria-label="Boat line spinlocks">
