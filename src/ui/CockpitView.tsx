@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ScenarioState } from "../sim/types";
 import { TridataInstrument, WindInstrument } from "./RaymarineInstruments";
 
@@ -54,6 +54,18 @@ export function CockpitView({ scenario }: Props) {
   const [genoaFurled, setGenoaFurled] = useState<boolean>(scenario.boat.genoaFurled ?? true);
   const [genoaTack, setGenoaTack] = useState<"port" | "starboard">(scenario.boat.genoaTack ?? "starboard");
   const [backlightLevel, setBacklightLevel] = useState<number>(0);
+
+  useEffect(() => {
+    setGenoaFurled(scenario.boat.genoaFurled ?? true);
+    setGenoaTack(scenario.boat.genoaTack ?? "starboard");
+    setSpinlocks((current) =>
+      current.map((lock) =>
+        lock.id === "genoa-furler"
+          ? { ...lock, locked: scenario.boat.genoaFurled ?? true }
+          : lock
+      )
+    );
+  }, [scenario.boat.genoaFurled, scenario.boat.genoaTack]);
   const heading = Math.round(scenario.boat.headingDeg);
   const windDir = Math.round(scenario.environment.windDirectionDeg);
   const windSpeed = scenario.environment.windStrengthKnots;
