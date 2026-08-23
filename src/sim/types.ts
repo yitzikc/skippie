@@ -88,6 +88,12 @@ export type MarineEntity = {
   headingDeg?: number;
   speedKnots?: number;
   label?: string;
+  vesselState?: "sailing" | "motor_sailing" | "motoring" | "anchored" | "heaving_to";
+  mainsailState?: "raised" | "down";
+  jibState?: "raised" | "furled";
+  heelDeg?: number;
+  motoringSignalActive?: boolean; // generic signal (motoring cone by day / steaming light by night)
+  anchoredSignalActive?: boolean; // generic signal (anchor ball by day / anchor light by night)
 };
 
 export type ScenarioState = {

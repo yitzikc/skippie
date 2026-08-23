@@ -201,6 +201,56 @@ export const tackDemoScenario: ScenarioState = {
       headingDeg: 180,
       speedKnots: 12,
       label: "Cargo Vessel"
+    },
+    {
+      id: "yacht-sailing",
+      type: "vessel_yacht",
+      x: 75,
+      y: 70,
+      headingDeg: 315, // sailing close-hauled on starboard tack (43 deg off true wind 358)
+      speedKnots: 5.4,
+      vesselState: "sailing",
+      mainsailState: "raised",
+      jibState: "raised",
+      label: "Yacht (Sailing - Stbd Tack)"
+    },
+    {
+      id: "yacht-anchored",
+      type: "vessel_yacht",
+      x: 10,
+      y: 110,
+      headingDeg: 358, // bow directly facing into the wind!
+      speedKnots: 0,
+      vesselState: "anchored",
+      mainsailState: "down",
+      jibState: "furled",
+      anchoredSignalActive: true,
+      label: "Yacht (Anchored - Bow to Wind)"
+    },
+    {
+      id: "yacht-motoring",
+      type: "vessel_yacht",
+      x: 90,
+      y: 20,
+      headingDeg: 180, // motoring downwind, heading not restricted by wind
+      speedKnots: 5.0,
+      vesselState: "motoring",
+      mainsailState: "down",
+      jibState: "furled",
+      motoringSignalActive: true,
+      label: "Yacht (Motoring - Sails Down)"
+    },
+    {
+      id: "yacht-heaveto",
+      type: "vessel_yacht",
+      x: -40,
+      y: 40,
+      headingDeg: 315,
+      speedKnots: 0.8,
+      vesselState: "heaving_to",
+      mainsailState: "raised",
+      jibState: "raised",
+      label: "Yacht (Heaving-to - Backed Jib)"
     }
   ],
   events: [

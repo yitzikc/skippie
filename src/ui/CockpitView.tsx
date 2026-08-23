@@ -246,7 +246,7 @@ export function CockpitView({ scenario }: Props) {
             <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
 
             {/* Projected Marine Navigation Entities (IALA Region A Buoys & Background Vessels) */}
-            <MarineEntities entities={scenario.entities || []} boat={scenario.boat} viewHeading={viewHeading} />
+            <MarineEntities entities={scenario.entities || []} boat={scenario.boat} viewHeading={viewHeading} windDirectionDeg={scenario.environment.windDirectionDeg} />
           </g>
 
           {/* 1. STATIONARY STANDING RIGGING LAYER (Shrouds & Forestay) */}

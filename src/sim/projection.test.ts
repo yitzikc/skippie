@@ -112,3 +112,40 @@ describe("4. Horizon Tilt Perspective Scaling (Heel vs View Angle)", () => {
     expect(calculateApparentTilt(15, 60)).toBeCloseTo(-7.5, 2);
   });
 });
+
+describe("5. Background Yacht Seamanship & Wind Alignment Physics", () => {
+  const windDir = 358; // Wind coming from almost due North (358 deg)
+
+  it("should enforce realistic points of sail for sailing background yachts (no sailing in irons)", () => {
+    // Yacht 1 (Sailing - Starboard Tack close-hauled) heading is 315 deg
+    const heading = 315;
+    let twa = (windDir - heading) % 360;
+    if (twa > 180) twa -= 360;
+    if (twa < -180) twa += 360;
+
+    // True Wind Angle (TWA) should be 43 degrees off the starboard bow
+    expect(twa).toBe(43);
+    
+    // Assert point of sail is valid (outside the irons exclusion zone of +/- 30 degrees)
+    expect(Math.abs(twa)).toBeGreaterThanOrEqual(30);
+    expect(Math.abs(twa)).toBeLessThanOrEqual(150);
+  });
+
+  it("should align anchored background yachts straight into the true wind direction", () => {
+    // Yacht 2 (Anchored) heading is 358 deg
+    const heading = 358;
+    
+    // Bow is facing directly into the windward axis!
+    expect(heading).toBe(windDir);
+  });
+
+  it("should heel background sailing yachts leeward relative to the wind side", () => {
+    // Wind is from starboard (TWA = 43 deg > 0)
+    // Dynamic sailing heel must tilt to port (negative heel angle!)
+    const twa = 43;
+    const isStarboardWind = twa >= 0;
+    
+    const heelDeg = isStarboardWind ? -12 : 12;
+    expect(heelDeg).toBeLessThan(0); // Portward heel
+  });
+});

@@ -6,13 +6,14 @@ interface MarineEntitiesProps {
   entities: MarineEntity[];
   boat: BoatState;
   viewHeading: number; // The skipper's absolute looking heading direction
+  windDirectionDeg: number; // True wind direction in the environment
 }
 
 /**
  * Component that projects and renders 2.5D visual representations of IALA Region A buoys
  * and moving background vessels within the cockpit's visual Field of View (FOV).
  */
-export function MarineEntities({ entities, boat, viewHeading }: MarineEntitiesProps) {
+export function MarineEntities({ entities, boat, viewHeading, windDirectionDeg }: MarineEntitiesProps) {
   // Trigonometric camera projection mapping world coordinates (x, y) to viewport coordinates (X, Y)
   const projectedEntities = entities
     .map((ent) => {
@@ -28,12 +29,14 @@ export function MarineEntities({ entities, boat, viewHeading }: MarineEntitiesPr
         const isPort = ent.type === "buoy_lateral_port";
         const isStbd = ent.type === "buoy_lateral_starboard";
         const isCargo = ent.type === "vessel_cargo";
+        const isYacht = ent.type === "vessel_yacht";
 
         return (
           <g key={ent.id} transform={`translate(${screenX}, ${screenY}) scale(${scale})`}>
             {isPort && <PortLateralBuoy label={ent.label} />}
             {isStbd && <StarboardLateralBuoy label={ent.label} />}
             {isCargo && <CargoVessel label={ent.label} />}
+            {isYacht && <YachtVessel ent={ent} windDir={windDirectionDeg} />}
           </g>
         );
       })}
@@ -70,12 +73,12 @@ function PortLateralBuoy({ label }: { label?: string }) {
       <text
         x="0"
         y="8.5"
-        fill="#f4efe7"
+        fill="#123239"
         fontSize="5.5"
         fontWeight="900"
         textAnchor="middle"
-        opacity="0.88"
-        filter="drop-shadow(0px 1px 1px rgba(0,0,0,0.65))"
+        opacity="0.95"
+        filter="drop-shadow(0px 0.8px 1px #ffffff)"
       >
         {label || "PORT"}
       </text>
@@ -100,12 +103,12 @@ function StarboardLateralBuoy({ label }: { label?: string }) {
       <text
         x="0"
         y="8.5"
-        fill="#f4efe7"
+        fill="#123239"
         fontSize="5.5"
         fontWeight="900"
         textAnchor="middle"
-        opacity="0.88"
-        filter="drop-shadow(0px 1px 1px rgba(0,0,0,0.65))"
+        opacity="0.95"
+        filter="drop-shadow(0px 0.8px 1px #ffffff)"
       >
         {label || "STBD"}
       </text>
@@ -139,14 +142,127 @@ function CargoVessel({ label }: { label?: string }) {
       <text
         x="0"
         y="7.5"
-        fill="#f4efe7"
+        fill="#123239"
         fontSize="5.5"
         fontWeight="900"
         textAnchor="middle"
-        opacity="0.88"
-        filter="drop-shadow(0px 1px 1px rgba(0,0,0,0.65))"
+        opacity="0.95"
+        filter="drop-shadow(0px 0.8px 1px #ffffff)"
       >
         {label || "CARGO"}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * 4. High-Fidelity Yacht Vessel
+ * Renders hull profiles, dynamic tacks (sails billowed lee), heeling directions,
+ * backed Genoa (heave-to windward sheeting), daytime motoring cones, and anchor balls.
+ */
+function YachtVessel({ ent, windDir }: { ent: MarineEntity; windDir: number }) {
+  const state = ent.vesselState || "sailing";
+  const heading = ent.headingDeg || 0;
+
+  // Compute true wind angle (TWA) relative to boat heading
+  // twa ranges from -180 to 180.
+  // Positive twa means wind from starboard, boat heels port.
+  // Negative twa means wind from port, boat heels starboard.
+  let twa = (windDir - heading) % 360;
+  if (twa > 180) twa -= 360;
+  if (twa < -180) twa += 360;
+
+  const isStarboardWind = twa >= 0;
+
+  // Determine sail states
+  const mainRaised = ent.mainsailState === "raised" || (state === "sailing" || state === "motor_sailing" || state === "heaving_to");
+  const jibRaised = ent.jibState === "raised" || (state === "sailing" || state === "motor_sailing" || state === "heaving_to");
+  const isJibBacked = state === "heaving_to";
+
+  // Sails billow lee
+  // If wind from starboard (positive), sails swing left/port (negative)
+  const mainDeflect = isStarboardWind ? -9 : 9;
+  const jibDeflect = isJibBacked
+    ? (isStarboardWind ? 9 : -9)   // Backed Genoa: sheeted windward!
+    : (isStarboardWind ? -9 : 9);  // Standard Genoa: sheeted leeward
+
+  // Dynamic Yacht Heel leeward
+  let heel = ent.heelDeg;
+  if (heel === undefined) {
+    if (state === "sailing") {
+      heel = isStarboardWind ? -12 : 12;
+    } else if (state === "motor_sailing") {
+      heel = isStarboardWind ? -6 : 6;
+    } else if (state === "heaving_to") {
+      heel = isStarboardWind ? -15 : 15;
+    } else {
+      heel = 0; // Motoring/Anchored are flat
+    }
+  }
+
+  // Motoring & Anchored signal marks (extensible for lights later!)
+  const motoringSignal = ent.motoringSignalActive || (state === "motor_sailing" || state === "motoring");
+  const anchoredSignal = ent.anchoredSignalActive || state === "anchored";
+
+  return (
+    <g className="entity-yacht-vessel" transform={`rotate(${heel} 0 0)`}>
+      {/* Wake/water shadow */}
+      <ellipse cx="0" cy="1" rx="9" ry="2.5" fill="rgba(18,50,57,0.2)" />
+
+      {/* Sleek fiberglass yacht hull profile */}
+      <path d="M -11,-3 Q -8,1.2 0,1.8 Q 8,1.2 11,-3 L 10,-5 L -10,-5 Z" fill="#fdfdfd" stroke="#373a3c" strokeWidth="0.8" />
+      {/* Decorative dark blue hull stripe */}
+      <path d="M -10.5,-4.2 L 10.5,-4.2 L 10,-5 L -10,-5 Z" fill="#284653" />
+
+      {/* Aluminum rigging mast */}
+      <line x1="0" y1="-5" x2="0" y2="-28" stroke="#788185" strokeWidth="1" />
+
+      {/* Genoa Jib (hoisted first so Mainsail can realistically overlap and obscure it!) */}
+      {jibRaised && (
+        <path
+          d={`M 8,-6 L 0,-27 Q ${(8 + jibDeflect)/2},${(-6 - 27)/2 + 2} ${jibDeflect}, -6 Z`}
+          fill="rgba(242, 237, 230, 0.94)"
+          stroke="#938b80"
+          strokeWidth="0.5"
+        />
+      )}
+
+      {/* Mainsail (hoisted after, sits on top in visual depth!) */}
+      {mainRaised && (
+        <path
+          d={`M 0,-6 L 0,-27 Q ${mainDeflect * 0.75},${(-6 - 27)/2} ${mainDeflect}, -6 Z`}
+          fill="rgba(245, 240, 232, 0.95)"
+          stroke="#a49382"
+          strokeWidth="0.5"
+        />
+      )}
+
+      {/* Daytime Motoring black cone signal (pointing down) */}
+      {motoringSignal && (
+        <g transform="translate(4, -18)">
+          <polygon points="0,3.5 -2.5,-1.5 2.5,-1.5" fill="#111213" stroke="#000" strokeWidth="0.4" />
+        </g>
+      )}
+
+      {/* Daytime Anchored black ball signal */}
+      {anchoredSignal && (
+        <g transform="translate(6, -15)">
+          <circle cx="0" cy="0" r="2" fill="#111213" stroke="#000" strokeWidth="0.4" />
+        </g>
+      )}
+
+      {/* Yacht nameplate/classification tag */}
+      <text
+        x="0"
+        y="8.5"
+        fill="#123239"
+        fontSize="5.2"
+        fontWeight="900"
+        textAnchor="middle"
+        opacity="0.95"
+        filter="drop-shadow(0px 0.8px 1px #ffffff)"
+      >
+        {ent.label || `Yacht (${state.replace("_", "-")})`}
       </text>
     </g>
   );

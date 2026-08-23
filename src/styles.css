@@ -666,7 +666,7 @@ meter {
 }
 
 .score-row span {
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .event-list {
