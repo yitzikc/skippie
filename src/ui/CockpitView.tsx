@@ -288,10 +288,21 @@ export function CockpitView({ scenario }: Props) {
                 strokeWidth="1"
                 opacity="0.97"
               />
-              {/* Telltales fluttering on Genoa leech */}
-              <g className="jib-telltales" opacity={isJibLuffing ? 0.35 : jibTelltaleOpacity}>
-                <path d={`${finalJibClewX - 22},${finalJibClewY - 40} L ${finalJibClewX - 6},${finalJibClewY - 24}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                <path d={`${finalJibClewX - 14},${finalJibClewY - 32} L ${finalJibClewX + 2},${finalJibClewY - 18}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+              {/* Telltales fluttering on Genoa leech - fly horizontal when trimmed, droop down when luffing */}
+              <g className="jib-telltales" opacity={isJibLuffing ? 0.45 : jibTelltaleOpacity}>
+                {isJibLuffing || apparentWindSpeed <= 6 ? (
+                  <>
+                    {/* Drooping down vertical loose telltales */}
+                    <path d={`M ${finalJibClewX - 18},${finalJibClewY - 36} L ${finalJibClewX - 18},${finalJibClewY - 24}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${finalJibClewX - 10},${finalJibClewY - 22} L ${finalJibClewX - 10},${finalJibClewY - 10}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                  </>
+                ) : (
+                  <>
+                    {/* Streamlined perfectly horizontal active windward/leeward telltales */}
+                    <path d={`M ${finalJibClewX - 18},${finalJibClewY - 36} L ${finalJibClewX - 2},${finalJibClewY - 36}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${finalJibClewX - 10},${finalJibClewY - 22} L ${finalJibClewX + 6},${finalJibClewY - 22}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                  </>
+                )}
               </g>
               {/* Clew Genoa sheet rope to Winch */}
               <line

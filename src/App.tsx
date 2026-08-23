@@ -54,35 +54,35 @@ export function App() {
             addEvent("crew", "Maya: Helming station manned. Tom: sheets prepped. Elena: active lookout. All crew ready at positions!");
             next.score.workloadDistribution = 95;
           } else if (t >= 6.0 && t < 8.0) {
-            addEvent("command", "Helm, turn port to tack");
-            addEvent("crew", "Maya (helm): Turn port commenced! Helming hard over.");
-            next.boat.rudderAngleDeg = -18;
+            addEvent("command", "Helm, turn starboard to tack");
+            addEvent("crew", "Maya (helm): Turn starboard commenced! Helming hard over.");
+            next.boat.rudderAngleDeg = 18; // Steer to starboard to turn bow clockwise into wind
             next.score.situationalAwareness = 90;
           } else if (t >= 8.5 && t < 10.5) {
             // PASSING HEAD TO WIND (IRONS) - 2.2 seconds into the turn!
             addEvent("observation", "Wind is dead ahead! Genoa and main luffing violently in irons.");
             addEvent("crew", "Elena (bow): Releasing port sheet! Sheet free!");
-            next.boat.headingDeg = 12; // Head to wind
+            next.boat.headingDeg = 358; // Head to wind (North)
             next.boat.apparentWindAngleDeg = 0;
             next.boat.speedKnots = 2.8;
             next.boat.speedOverGroundKnots = 2.8;
-            next.boat.heelDeg = 0.5;
-            next.boat.leewayDeg = 1.0;
+            next.boat.heelDeg = -0.5;
+            next.boat.leewayDeg = -1.0;
           } else if (t >= 10.5 && t < 13.0) {
             // COMPLETED ON NEW TACK - 4.4 seconds after starting the turn!
             addEvent("command", "Trim starboard sheet");
             addEvent("crew", "Tom (winch): Starboard sheet sheeted and trimmed! Sails drawing.");
             next.boat.rudderAngleDeg = 0; // Center helm
-            next.boat.headingDeg = 315;
-            next.boat.apparentWindAngleDeg = -32;
+            next.boat.headingDeg = 45; // Settle Port tack close-hauled
+            next.boat.apparentWindAngleDeg = -43; // wind on Port
             next.boat.genoaTack = "starboard"; // Sheeted starboard!
             next.boat.speedKnots = 5.8;
             next.boat.speedOverGroundKnots = 5.8;
-            next.boat.heelDeg = -13; // Settle heel on Port tack
-            next.boat.leewayDeg = 3.5;
+            next.boat.heelDeg = 13; // Settle heel starboard on Port tack
+            next.boat.leewayDeg = -3.5;
             next.score.proceduralCompliance = 98;
           } else if (t >= 13.0) {
-            addEvent("observation", "Autopilot demo completed successfully! Settle close-hauled course 315°.");
+            addEvent("observation", "Autopilot demo completed successfully! Settle close-hauled course 045°.");
             next.completed = true;
           }
 

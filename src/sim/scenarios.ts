@@ -104,7 +104,7 @@ export const tackDemoScenario: ScenarioState = {
   boat: {
     x: 52,
     y: 55,
-    headingDeg: 45, // Starboard tack close-hauled
+    headingDeg: 315, // Starboard tack close-hauled (wind at 358 is 43 deg starboard bow)
     speedKnots: 6.0,
     angularVelocity: 0,
     momentum: 0.85,
@@ -116,17 +116,17 @@ export const tackDemoScenario: ScenarioState = {
     mainHoistIssue: "none",
     genoaFurled: false,
     genoaTack: "port", // sheeted to port
-    heelDeg: 14,
-    leewayDeg: 3.5,
-    apparentWindAngleDeg: 32, // wind from starboard
+    heelDeg: -14, // heel is port under starboard wind
+    leewayDeg: -3.5,
+    apparentWindAngleDeg: 43, // wind from starboard
     apparentWindSpeedKnots: 17.4,
     speedOverGroundKnots: 6.0,
-    courseOverGroundDeg: 45,
+    courseOverGroundDeg: 315,
     mainTrim: 0.5,
     genoaTrim: 0.5,
   },
   environment: {
-    windDirectionDeg: 12,
+    windDirectionDeg: 358,
     windStrengthKnots: 14,
     gustKnots: 18,
     tidalCurrentDirectionDeg: 180,
@@ -138,7 +138,7 @@ export const tackDemoScenario: ScenarioState = {
       id: "maya",
       name: "Maya",
       role: "helm",
-      task: "Sailing close-hauled on course 045°",
+      task: "Sailing close-hauled on course 315°",
       experience: 0.7,
       fatigue: 0.12,
       attention: 0.82,
