@@ -49,9 +49,14 @@ export function tickScenario(state: ScenarioState, deltaSec = 4): ScenarioState 
   const rateHeel = 2.0; // Fast response for heel
   const rateLeeway = 1.0; // Moderate response for leeway
 
+  // Physical Sign Convention: boat always heels and drifts leeward (away from the wind)
+  // If true wind angle (twa) is on starboard (positive), heel and leeway are portward (negative)
+  const targetHeelSigned = twa >= 0 ? -target.heel : target.heel;
+  const targetLeewaySigned = twa >= 0 ? -Math.abs(target.leeway) : Math.abs(target.leeway);
+
   next.boat.speedKnots = target.stw + (next.boat.speedKnots - target.stw) * Math.exp(-rateStw * deltaSec);
-  next.boat.heelDeg = target.heel + (next.boat.heelDeg - target.heel) * Math.exp(-rateHeel * deltaSec);
-  next.boat.leewayDeg = target.leeway + (next.boat.leewayDeg - target.leeway) * Math.exp(-rateLeeway * deltaSec);
+  next.boat.heelDeg = targetHeelSigned + (next.boat.heelDeg - targetHeelSigned) * Math.exp(-rateHeel * deltaSec);
+  next.boat.leewayDeg = targetLeewaySigned + (next.boat.leewayDeg - targetLeewaySigned) * Math.exp(-rateLeeway * deltaSec);
 
   // Recompute apparent wind and ground motion vectors based on current smoothed states
   const currentWindAndSog = calculateApparentWind(
