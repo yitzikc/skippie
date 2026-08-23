@@ -73,6 +73,23 @@ export type ScoreState = {
   safetyMargin: number;
 };
 
+export type EntityType =
+  | "buoy_lateral_port"        // Red Can (IALA A)
+  | "buoy_lateral_starboard"   // Green Cone (IALA A)
+  | "buoy_cardinal_north"
+  | "vessel_cargo"             // Cargo ship in background
+  | "vessel_yacht";            // Background yacht
+
+export type MarineEntity = {
+  id: string;
+  type: EntityType;
+  x: number;       // absolute East (meters)
+  y: number;       // absolute North (meters)
+  headingDeg?: number;
+  speedKnots?: number;
+  label?: string;
+};
+
 export type ScenarioState = {
   id: string;
   title: string;
@@ -83,6 +100,7 @@ export type ScenarioState = {
   crew: CrewMember[];
   score: ScoreState;
   events: SimEvent[];
+  entities?: MarineEntity[]; // Buoys and background vessels
   commandCount: number;
   completed: boolean;
 };

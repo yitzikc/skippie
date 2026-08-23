@@ -178,6 +178,31 @@ export const tackDemoScenario: ScenarioState = {
     proceduralCompliance: 82,
     safetyMargin: 85,
   },
+  entities: [
+    {
+      id: "buoy-port",
+      type: "buoy_lateral_port",
+      x: 38,
+      y: 125,
+      label: "Port No. 4 (IALA A)"
+    },
+    {
+      id: "buoy-stbd",
+      type: "buoy_lateral_starboard",
+      x: 95,
+      y: 35,
+      label: "Starboard No. 3 (IALA A)"
+    },
+    {
+      id: "vessel-cargo",
+      type: "vessel_cargo",
+      x: 120,
+      y: 190,
+      headingDeg: 180,
+      speedKnots: 12,
+      label: "Cargo Vessel"
+    }
+  ],
   events: [
     {
       id: "evt-0",

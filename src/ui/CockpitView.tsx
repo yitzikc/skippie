@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { ScenarioState } from "../sim/types";
 import { TridataInstrument, WindInstrument } from "./RaymarineInstruments";
+import { MarineEntities } from "./MarineEntities";
 
 type Props = {
   scenario: ScenarioState;
@@ -214,6 +215,9 @@ export function CockpitView({ scenario }: Props) {
           {/* Sea water horizontal backdrop */}
           <path d="M0,240 Q270,180 700,250 L700,420 L0,420 Z" fill="rgba(71,128,138,0.84)" />
           <path d="M0,200 L700,200" stroke="rgba(17, 52, 61, 0.22)" strokeWidth="2" strokeDasharray="8 8" />
+
+          {/* Projected Marine Navigation Entities (IALA Region A Buoys & Background Vessels) */}
+          <MarineEntities entities={scenario.entities || []} boat={scenario.boat} />
 
           {/* 1. STATIONARY STANDING RIGGING LAYER (Shrouds & Forestay) */}
           <path d="M 160,282 L 310,88 L 350,16" fill="none" stroke="#788185" strokeWidth="1.2" opacity="0.85" />
