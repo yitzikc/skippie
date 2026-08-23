@@ -1,5 +1,6 @@
 import { parseSkipperCommand } from "./commands";
 import type { ScenarioState, SimEvent, SkipperCommand } from "./types";
+import { evaluateYacht, calculateApparentWind, beneteau367 } from "./physics";
 
 export function cloneScenario(state: ScenarioState): ScenarioState {
   return structuredClone(state);
@@ -10,10 +11,66 @@ export function tickScenario(state: ScenarioState, deltaSec = 4): ScenarioState 
   next.timeSec += deltaSec;
 
   const windError = smallestAngle(next.boat.headingDeg, next.environment.windDirectionDeg);
-  next.boat.angularVelocity = windError * 0.006 + next.boat.rudderAngleDeg * 0.003;
+
+  // Turn authority scales with boat speed (steerageway)
+  const rudderAuthority = next.boat.speedKnots > 0.5 ? Math.min(1.5, next.boat.speedKnots / 3.0) : 0;
+  next.boat.angularVelocity = windError * 0.006 + next.boat.rudderAngleDeg * 0.003 * rudderAuthority;
   next.boat.headingDeg = normalizeHeading(next.boat.headingDeg + next.boat.angularVelocity * deltaSec);
-  next.boat.x += Math.sin((next.boat.headingDeg * Math.PI) / 180) * next.boat.speedKnots * 0.18;
-  next.boat.y -= Math.cos((next.boat.headingDeg * Math.PI) / 180) * next.boat.speedKnots * 0.18;
+
+  // Map discrete engine settings to target RPM
+  let engineRpm = 0;
+  if (next.boat.engine === "idle") {
+    engineRpm = 800;
+  } else if (next.boat.engine === "ahead") {
+    engineRpm = 1500;
+  } else if (next.boat.engine === "astern") {
+    engineRpm = 1500;
+  }
+
+  // Calculate current true wind angle relative to boat heading
+  const twa = smallestAngle(next.boat.headingDeg, next.environment.windDirectionDeg);
+
+  // Calculate steady state targets
+  const target = evaluateYacht(beneteau367, {
+    tws: next.environment.windStrengthKnots,
+    twa: twa,
+    mainTrim: next.boat.mainTrim ?? 0.5,
+    genoaTrim: next.boat.genoaTrim ?? 0.5,
+    mainsailRaised: next.boat.mainsail === "raised",
+    genoaRaised: !next.boat.genoaFurled,
+    engineRpm: engineRpm,
+    rudderAngle: next.boat.rudderAngleDeg,
+    currentSpeed: next.environment.tidalCurrentKnots,
+    currentDir: smallestAngle(next.boat.headingDeg, next.environment.tidalCurrentDirectionDeg)
+  });
+
+  // Apply analytical first-order lag filters for inertia and absolute stability
+  const rateStw = 0.5; // Inertia for speed
+  const rateHeel = 2.0; // Fast response for heel
+  const rateLeeway = 1.0; // Moderate response for leeway
+
+  next.boat.speedKnots = target.stw + (next.boat.speedKnots - target.stw) * Math.exp(-rateStw * deltaSec);
+  next.boat.heelDeg = target.heel + (next.boat.heelDeg - target.heel) * Math.exp(-rateHeel * deltaSec);
+  next.boat.leewayDeg = target.leeway + (next.boat.leewayDeg - target.leeway) * Math.exp(-rateLeeway * deltaSec);
+
+  // Recompute apparent wind and ground motion vectors based on current smoothed states
+  const currentWindAndSog = calculateApparentWind(
+    next.environment.windStrengthKnots,
+    twa,
+    next.boat.speedKnots,
+    next.boat.leewayDeg,
+    next.environment.tidalCurrentKnots,
+    smallestAngle(next.boat.headingDeg, next.environment.tidalCurrentDirectionDeg)
+  );
+
+  next.boat.apparentWindAngleDeg = currentWindAndSog.awa;
+  next.boat.apparentWindSpeedKnots = currentWindAndSog.aws;
+  next.boat.speedOverGroundKnots = currentWindAndSog.sog;
+  next.boat.courseOverGroundDeg = normalizeHeading(next.boat.headingDeg + currentWindAndSog.cog_rel);
+
+  // Update position using ground motion (SOG and COG)
+  next.boat.x += Math.sin((next.boat.courseOverGroundDeg * Math.PI) / 180) * next.boat.speedOverGroundKnots * 0.18;
+  next.boat.y -= Math.cos((next.boat.courseOverGroundDeg * Math.PI) / 180) * next.boat.speedOverGroundKnots * 0.18;
 
   if (Math.abs(windError) > 35 && next.boat.mainsail === "hoisting") {
     next.score.safetyMargin = clampScore(next.score.safetyMargin - 4);

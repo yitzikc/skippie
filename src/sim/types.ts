@@ -28,6 +28,16 @@ export type BoatState = {
   mainHoistIssue: "none" | "sail-luffing" | "halyard-tangle";
   genoaFurled: boolean;
   genoaTack: "port" | "starboard";
+
+  // Physics State Variables
+  heelDeg: number;
+  leewayDeg: number;
+  apparentWindAngleDeg: number;
+  apparentWindSpeedKnots: number;
+  speedOverGroundKnots: number;
+  courseOverGroundDeg: number;
+  mainTrim: number;
+  genoaTrim: number;
 };
 
 export type EnvironmentState = {
