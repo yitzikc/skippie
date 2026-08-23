@@ -169,6 +169,11 @@ export function CockpitView({ scenario }: Props) {
   const telltaleX_upper = luffX_upper + (finalJibClewX - luffX_upper) * 0.08;
   const telltaleY_upper = luffY_upper + (finalJibClewY - luffY_upper) * 0.06;
 
+  const luffX_top = bowX + (mastX - 20 - bowX) * 0.72;
+  const luffY_top = 275 - (275 - 60) * 0.72;
+  const telltaleX_top = luffX_top + (finalJibClewX - luffX_top) * 0.08;
+  const telltaleY_top = luffY_top + (finalJibClewY - luffY_top) * 0.06;
+
   const enginePosition = (() => {
     switch (scenario.boat.engine) {
       case "astern":
@@ -255,46 +260,7 @@ export function CockpitView({ scenario }: Props) {
           {/* Forestay */}
           <line x1={bowX} y1="275" x2={mastX} y2="16" stroke="#474d4f" strokeWidth="1.8" opacity="0.9" />
 
-          {/* 2. DYNAMIC MAINSAIL LAYER (Swings and flutters dynamically) */}
-          {sailProgress > 0.05 ? (
-            <g className={isMainLuffing ? "luffing-flutter" : ""}>
-              {/* Triangular Billowed Mainsail */}
-              <path
-                d={`M ${mastX},212 L ${mastX},${headY} Q ${(mastX + clewX) / 2 + 36} ${(headY + clewY) / 2 - 12} ${clewX},${clewY} Z`}
-                fill="url(#mainGradient)"
-                stroke="#7b4f46"
-                strokeWidth="1"
-                opacity="0.96"
-              />
-              {/* Full batten structural pocket lines */}
-              {[0.25, 0.5, 0.75].map((ratio) => {
-                const yLuff = headY + (212 - headY) * ratio;
-                const yLeech = headY + (clewY - headY) * ratio;
-                const xLeech = mastX + (clewX - mastX) * ratio + 36 * (1 - Math.pow(2 * ratio - 1, 2));
-                return (
-                  <path
-                    key={ratio}
-                    d={`M ${mastX},${yLuff} Q ${(mastX + xLeech) / 2 + 10} ${(yLuff + yLeech) / 2 - 2} ${xLeech},${yLeech}`}
-                    stroke="#4a5255"
-                    strokeWidth="1.5"
-                    fill="none"
-                    opacity="0.65"
-                  />
-                );
-              })}
-            </g>
-          ) : (
-            /* Folded Mainsail Cover on top of the boom when lowered */
-            <path
-              d={`M ${mastX},212 L ${clewX},${clewY} L ${clewX},${clewY - 4} Q ${(mastX + clewX) / 2},${(212 + clewY) / 2 - 6} ${mastX},208 Z`}
-              fill="#81898d"
-              stroke="#5c6265"
-              strokeWidth="0.8"
-              opacity="0.88"
-            />
-          )}
-
-          {/* 3. DYNAMIC GENOA (JIB) LAYER (Responsive to back-sheeting, backed heave-to, and furling) */}
+          {/* 2. DYNAMIC GENOA (JIB) LAYER (Responsive to back-sheeting, backed heave-to, and furling) */}
           {genoaVisible ? (
             <g className={isJibLuffing ? "genoa-flutter" : ""}>
               {/* Backed Windward vs standard Genoa shape */}
@@ -305,22 +271,6 @@ export function CockpitView({ scenario }: Props) {
                 strokeWidth="1"
                 opacity="0.97"
               />
-              {/* Telltales fluttering on Genoa luff chord - fly horizontal when trimmed, droop down when luffing */}
-              <g className="jib-telltales" opacity={isJibLuffing ? 0.45 : jibTelltaleOpacity}>
-                {isJibLuffing || apparentWindSpeed <= 6 ? (
-                  <>
-                    {/* Drooping down vertical loose telltales on luff */}
-                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper},${telltaleY_upper + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower},${telltaleY_lower + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                  </>
-                ) : (
-                  <>
-                    {/* Streamlined perfectly horizontal active windward/leeward telltales flowing aft */}
-                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper + (finalJibClewX > luffX_upper ? 14 : -14)},${telltaleY_upper}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower + (finalJibClewX > luffX_lower ? 14 : -14)},${telltaleY_lower}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
-                  </>
-                )}
-              </g>
               {/* Clew Genoa sheet rope to Winch */}
               <line
                 x1={finalJibClewX}
@@ -361,6 +311,68 @@ export function CockpitView({ scenario }: Props) {
                 strokeLinecap="round"
                 opacity="0.65"
               />
+            </g>
+          )}
+
+          {/* 3. DYNAMIC MAINSAIL LAYER (Swings and flutters dynamically) */}
+          {sailProgress > 0.05 ? (
+            <g className={isMainLuffing ? "luffing-flutter" : ""}>
+              {/* Triangular Billowed Mainsail */}
+              <path
+                d={`M ${mastX},212 L ${mastX},${headY} Q ${(mastX + clewX) / 2 + 36} ${(headY + clewY) / 2 - 12} ${clewX},${clewY} Z`}
+                fill="url(#mainGradient)"
+                stroke="#7b4f46"
+                strokeWidth="1"
+                opacity="0.96"
+              />
+              {/* Full batten structural pocket lines */}
+              {[0.25, 0.5, 0.75].map((ratio) => {
+                const yLuff = headY + (212 - headY) * ratio;
+                const yLeech = headY + (clewY - headY) * ratio;
+                const xLeech = mastX + (clewX - mastX) * ratio + 36 * (1 - Math.pow(2 * ratio - 1, 2));
+                return (
+                  <path
+                    key={ratio}
+                    d={`M ${mastX},${yLuff} Q ${(mastX + xLeech) / 2 + 10} ${(yLuff + yLeech) / 2 - 2} ${xLeech},${yLeech}`}
+                    stroke="#4a5255"
+                    strokeWidth="1.5"
+                    fill="none"
+                    opacity="0.65"
+                  />
+                );
+              })}
+            </g>
+          ) : (
+            /* Folded Mainsail Cover on top of the boom when lowered */
+            <path
+              d={`M ${mastX},212 L ${clewX},${clewY} L ${clewX},${clewY - 4} Q ${(mastX + clewX) / 2},${(212 + clewY) / 2 - 6} ${mastX},208 Z`}
+              fill="#81898d"
+              stroke="#5c6265"
+              strokeWidth="0.8"
+              opacity="0.88"
+            />
+          )}
+
+          {/* 3.5 OVERLAID DYNAMIC GENOA TELLTALES (Renders on top of mainsail for absolute tactical visibility!) */}
+          {genoaVisible && (
+            <g className="jib-telltales-overlay" style={{ pointerEvents: "none" }}>
+              <g className="jib-telltales" opacity={isJibLuffing ? 0.45 : jibTelltaleOpacity}>
+                {isJibLuffing || apparentWindSpeed <= 6 ? (
+                  <>
+                    {/* Drooping down vertical loose telltales on luff foil */}
+                    <path d={`M ${telltaleX_top},${telltaleY_top} L ${telltaleX_top},${telltaleY_top + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper},${telltaleY_upper + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower},${telltaleY_lower + 14}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                  </>
+                ) : (
+                  <>
+                    {/* Streamlined perfectly horizontal active windward/leeward telltales flowing aft */}
+                    <path d={`M ${telltaleX_top},${telltaleY_top} L ${telltaleX_top + (finalJibClewX > luffX_top ? 14 : -14)},${telltaleY_top}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_upper},${telltaleY_upper} L ${telltaleX_upper + (finalJibClewX > luffX_upper ? 14 : -14)},${telltaleY_upper}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                    <path d={`M ${telltaleX_lower},${telltaleY_lower} L ${telltaleX_lower + (finalJibClewX > luffX_lower ? 14 : -14)},${telltaleY_lower}`} stroke={activeTelltaleColor} strokeWidth="2.2" strokeLinecap="round" />
+                  </>
+                )}
+              </g>
             </g>
           )}
 

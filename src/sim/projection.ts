@@ -97,7 +97,7 @@ export function calculateRiggingCoordinates(
 ): RiggingCoordinates {
   // Mast shifts horizontally in perspective based on skipper view offset
   const mastX = 350 - (viewAngle / 32) * 310;
-  const bowX = mastX - 130;
+  const bowX = mastX - 35;
 
   // Boom Clew
   const clewX = mastX + boomOffset * 3.6;

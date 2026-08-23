@@ -61,7 +61,7 @@ describe("3. Rigging Geometry & Backed Sails (Heave-To)", () => {
   it("should center the mast and spars when looking straight ahead", () => {
     const rig = calculateRiggingCoordinates(0, 0, 0, 0, 0, "starboard", true);
     expect(rig.mastX).toBe(350);
-    expect(rig.bowX).toBe(220);
+    expect(rig.bowX).toBe(315);
     expect(rig.clewX).toBe(350);
     expect(rig.travellerX).toBe(350);
     expect(rig.isJibBacked).toBe(false);
@@ -70,14 +70,14 @@ describe("3. Rigging Geometry & Backed Sails (Heave-To)", () => {
   it("should shift coordinates left when looking to starboard", () => {
     const rig = calculateRiggingCoordinates(32, 0, 0, 0, 0, "starboard", true);
     expect(rig.mastX).toBe(40);
-    expect(rig.bowX).toBe(-90);
+    expect(rig.bowX).toBe(5);
     expect(rig.clewX).toBe(40);
   });
 
   it("should shift coordinates right when looking to port", () => {
     const rig = calculateRiggingCoordinates(-32, 0, 0, 0, 0, "starboard", true);
     expect(rig.mastX).toBe(660);
-    expect(rig.bowX).toBe(530);
+    expect(rig.bowX).toBe(625);
   });
 
   it("should detect backed genoa during heave-to windward sheeting", () => {
