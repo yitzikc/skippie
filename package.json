@@ -10,7 +10,7 @@
     "dev:local": "node scripts/dev-with-mlx.mjs",
     "benchmark:llm": "node scripts/llm-benchmark.mjs",
     "benchmark:live": "tsx scripts/live-command-benchmark.mjs",
-    "test:physics": "tsx scripts/validate-physics.ts",
+    "test:physics": "vitest run src/sim/physics.test.ts",
     "test:projection": "vitest run src/sim/projection.test.ts",
     "test": "vitest run",
     "build": "tsc --noEmit && vite build",
